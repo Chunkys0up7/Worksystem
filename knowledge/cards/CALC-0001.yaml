@@ -1,0 +1,16 @@
+id: CALC-0001
+type: calculation
+moment: MOM-income-calculated
+title: Qualifying monthly income
+statement: >
+  Qualifying monthly income is base pay per period times pay periods per year
+  divided by 12, plus eligible variable income per month. Each part is rounded
+  to the cent, half up, before the two are added.
+data:
+  formula: round(base_per_period * periods_per_year / 12) + round(eligible_variable_monthly)
+  rounding: half-up to 0.01
+uses: [FACT-0001, RULE-0001]
+implements: [PD-0001, OBL-0001]
+owner: income-policy-sme
+version: 1
+source: synthetic

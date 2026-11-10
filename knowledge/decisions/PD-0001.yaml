@@ -1,0 +1,10 @@
+id: PD-0001
+type: product-decision
+title: Variable income needs two years of history to count
+statement: >
+  Overtime, bonus and commission income counts toward qualifying income only
+  when the applicant has at least 24 months of history receiving it. When it
+  counts, it is averaged over 24 months.
+owner: income-policy-sme
+decided: 2026-11-10
+status: synthetic

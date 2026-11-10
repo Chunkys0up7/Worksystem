@@ -1,0 +1,15 @@
+id: RULE-0001
+type: rule
+moment: MOM-income-calculated
+title: Variable income counts only with 24 months of history
+statement: >
+  Variable income (overtime, bonus, commission) contributes to qualifying
+  income only when history is at least 24 months. Below that it contributes
+  nothing. When it counts, the total over the window is divided by 24.
+data:
+  min_history_months: 24
+  window_months: 24
+implements: [PD-0001, OBL-0001]
+owner: income-policy-sme
+version: 1
+source: synthetic

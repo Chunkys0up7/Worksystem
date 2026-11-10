@@ -1,0 +1,12 @@
+id: PROC-0001
+type: procedure
+moment: MOM-conflict-review
+title: Conflicting income documents go to a person
+statement: >
+  When two income documents disagree on base pay or pay frequency, the agent
+  does not choose between them and does not calculate. It records which
+  documents conflict, by reference, and routes the case to a human reviewer.
+implements: [OBL-0001]
+owner: income-policy-sme
+version: 1
+source: synthetic

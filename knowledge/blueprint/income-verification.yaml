@@ -1,0 +1,36 @@
+# Service blueprint slice: income verification for a consumer loan application.
+# SYNTHETIC. Invented for this reference build.
+#
+# The blueprint is the organising ontology. Cards hang off moments. A moment
+# marked regulated carries its obligations and data classes before any build.
+
+id: BP-income-verification
+title: Income verification
+status: synthetic
+outcome_metric: share of applications with income verified without rework
+
+moments:
+  - id: MOM-documents-received
+    title: Applicant supplies income documents
+    lane: customer action
+    actor: applicant
+    regulated: false
+    data_classes: [consumer-personal]
+
+  - id: MOM-income-calculated
+    title: Qualifying monthly income is calculated
+    lane: backstage
+    actor: decision service
+    node: NODE-income-verify
+    regulated: true
+    obligations: [OBL-0001]
+    data_classes: [consumer-personal, credit-decision]
+
+  - id: MOM-conflict-review
+    title: Conflicting documents go to a person
+    lane: backstage
+    actor: human reviewer
+    node: NODE-income-verify
+    regulated: true
+    obligations: [OBL-0001]
+    data_classes: [consumer-personal, credit-decision]

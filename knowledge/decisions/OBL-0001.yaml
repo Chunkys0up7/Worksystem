@@ -1,0 +1,13 @@
+id: OBL-0001
+type: obligation
+title: A decision that affects an applicant is explainable from recorded inputs
+statement: >
+  Any figure that feeds a credit decision is produced by deterministic code,
+  and the result names the rules that produced it, so the decision can be
+  reconstructed and explained later from what was recorded.
+owner: compliance-sme
+control: regulated figures come only from deterministic decision services
+status: synthetic
+note: >
+  A generic obligation written for this build. Supervisor-specific citations
+  are held by Legal, outside this repository.

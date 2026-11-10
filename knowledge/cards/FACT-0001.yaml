@@ -1,0 +1,15 @@
+id: FACT-0001
+type: fact
+moment: MOM-income-calculated
+title: Pay periods per year by pay frequency
+statement: A year has 52 weekly, 26 biweekly, 24 semimonthly and 12 monthly pay periods.
+data:
+  periods_per_year:
+    weekly: 52
+    biweekly: 26
+    semimonthly: 24
+    monthly: 12
+implements: [OBL-0001]
+owner: income-policy-sme
+version: 1
+source: synthetic
