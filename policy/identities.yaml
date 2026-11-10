@@ -37,6 +37,14 @@ roles:
     description: Runs the executor conformance suite and records the result.
     may_write: [conformance.result]
 
+  - name: gateway
+    description: The only route to a model. Records what was used.
+    may_write: [gateway.usage]
+
+  - name: reviewer
+    description: Advisory review by a model that did not write the change. Advice only.
+    may_write: [review.advice]
+
 identities:
   - name: agent-executor
     role: executor
@@ -45,6 +53,14 @@ identities:
   - name: executor-recorded
     role: executor
     note: Replays a stored patch. No model. Always labelled as recorded.
+
+  - name: executor-loop
+    role: executor
+    note: A small tool loop over the model gateway. Model-agnostic.
+
+  - name: executor-cli
+    role: executor
+    note: A headless coding-agent command run inside the worktree.
 
   - name: ci-tiering
     role: tiering
@@ -60,3 +76,9 @@ identities:
 
   - name: ci-conformance
     role: conformance
+
+  - name: model-gateway
+    role: gateway
+
+  - name: advisory-reviewer
+    role: reviewer

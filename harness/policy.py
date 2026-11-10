@@ -62,6 +62,8 @@ class Policy:
     deny_read: tuple[str, ...] = ()
     deny_write: tuple[str, ...] = ()
     enforce_commits_after: str | None = None
+    models: dict[str, dict[str, Any]] = None  # type: ignore[assignment]
+    model_caps: dict[str, int] = None  # type: ignore[assignment]
 
     def writer_role_of(self, fact_type: str) -> str | None:
         """The one role that may write this fact type."""
@@ -174,6 +176,14 @@ def load_policy(root: Path | None = None) -> Policy:
         if rule.get("tier") not in ("A", "B", "C"):
             raise PolicyError(f"path-map rule {rule.get('glob')}: bad tier")
 
+    model_doc = _read(root, "models.yaml")
+    models: dict[str, dict[str, Any]] = {}
+    for row in model_doc.get("models", []):
+        if row["id"] in models:
+            raise PolicyError(f"model {row['id']} is pinned twice")
+        if not row.get("family") or not row.get("roles"):
+            raise PolicyError(f"model {row['id']} needs a family and at least one role")
+        models[row["id"]] = row
     deny = _read(root, "deny.yaml")
     commits = _read(root, "commits.yaml")
 
@@ -192,4 +202,6 @@ def load_policy(root: Path | None = None) -> Policy:
         deny_read=tuple(deny.get("read", [])),
         deny_write=tuple(deny.get("write", [])),
         enforce_commits_after=str(commits["enforce_after"]) if commits.get("enforce_after") else None,
+        models=models,
+        model_caps=dict(model_doc.get("caps", {})),
     )

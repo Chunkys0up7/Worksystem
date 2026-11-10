@@ -16,6 +16,6 @@ test:
 	python -m pytest -q
 
 conformance:
-	python -m harness conformance recorded --show-run
+	python -m harness conformance loop --show-run
 
 all: validate test attacks conformance demo

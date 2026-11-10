@@ -93,7 +93,8 @@ def test_a_decision_nothing_implements_or_cites_fails(env):
 # ------------------------------------------------------------------ roles (task 3)
 
 def test_two_identities_can_hold_the_executor_role(policy):
-    assert policy.identities_in_role("executor") == ["agent-executor", "executor-recorded"]
+    assert policy.identities_in_role("executor") == [
+        "agent-executor", "executor-cli", "executor-loop", "executor-recorded"]
     assert policy.writer_role_of("change.proposed") == "executor"
     assert policy.may_write("executor-recorded", "change.proposed")
     assert not policy.may_write("executor-recorded", "gate.result")
@@ -443,33 +444,36 @@ def test_recorded_executor_is_labelled(env, scenario, keydir):
         assert env.ledger.find(fact_type=fact_type)[0].payload["recorded"] is True
     assert env.ledger.find(fact_type="executor.evidence")[0].payload["claim"]["model"] is None
     assert "(recorded)" in delivery.trailers
-    assert any("RECORDED executor, no model ran" in s for s in delivery.steps)
+    assert any("RECORDED executor, no live model ran" in s for s in delivery.steps)
+    assert env.ledger.find(fact_type="gate.result")[0].payload["live"] is False
 
 
 def test_conformance_suite_on_the_recorded_executor(scenario, root, keydir, tmp_path):
-    suite = run_suite(lambda d: load_executor("recorded", d), scenario, root, keydir, tmp_path)
+    suite = run_suite("recorded", scenario, root, keydir, tmp_path, swap_with="loop")
     status = {c.criterion: c.status for c in suite.clauses}
     assert [k for k, v in status.items() if v == "fail"] == []
-    assert {k for k, v in status.items() if v == "n/a"} == {"A3", "A8", "A9", "A10", "A11"}
-    assert {"A2", "A4", "A5", "A6", "A7", "A12", "A13"} <= {k for k, v in status.items() if v == "pass"}
-    # A partly judged executor is never called conformant.
-    assert suite.verdict.startswith("passes 11 of 16") and "conforms" not in suite.verdict
-    text = render(suite)
-    assert "RECORDED: no model ran" in text
+    assert {k for k, v in status.items() if v == "n/a"} == {"A3", "A8", "A11"}
+    assert {"A2", "A4", "A5", "A6", "A7", "A9", "A10", "A12", "A13"} <= {
+        k for k, v in status.items() if v == "pass"}
+    # A recorded executor is never called conformant.
+    assert suite.verdict.startswith("passes 13 of 16")
+    assert "RECORDED: the harness side only" in suite.verdict
+    assert "RECORDED: no model ran" in render(suite)
     result = suite.ledger.find(fact_type="conformance.result")[0]
-    assert result.actor == "ci-conformance" and result.payload["recorded"] is True
+    assert result.actor == "ci-conformance" and result.payload["live"] is False
 
 
 def test_conformance_suite_fails_a_misbehaving_executor(scenario, root, keydir, tmp_path):
-    suite = run_suite(lambda d: doubles.Liar(doubles.recording(d)), scenario, root, keydir, tmp_path)
+    suite = run_suite("liar", scenario, root, keydir, tmp_path,
+                      make_executor=lambda env: doubles.Liar(doubles.recording(env.scenario_dir)))
     failed = {c.criterion for c in suite.clauses if c.status == "fail"}
     assert {"A7", "A12", "outcome"} <= failed
     assert suite.verdict == "does not conform"
 
 
 def test_unknown_executor_names_what_exists(scenario):
-    with pytest.raises(KeyError, match="Built so far: recorded"):
-        load_executor("loop", scenario.dir)
+    with pytest.raises(KeyError, match="Available: recorded, loop"):
+        load_executor("nope", scenario.dir)
 
 
 def test_scenario_overlay_does_not_touch_the_repository(scenario, root, tmp_path):

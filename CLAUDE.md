@@ -11,7 +11,7 @@ python -m harness validate   # every link resolves, every skill verifies
 python -m pytest -q          # tests (set LEDGER_PG_DSN to add Postgres)
 python -m harness attacks    # the attack pack
 python -m harness demo       # one pipeline, three tiers
-python -m harness conformance recorded    # the executor conformance suite
+python -m harness conformance loop        # the executor conformance suite (also: recorded, cli-stub)
 python -m harness commits check           # every commit cites a spec and stays inside it
 python -m harness tier --paths <paths>    # what tier is this change
 ```

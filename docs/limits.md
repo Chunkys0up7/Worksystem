@@ -67,17 +67,22 @@ no recovery procedure for an entry that was stored but not anchored (the build
 detects it and refuses further writes, which is the safe half). Harness-degraded
 mode, for when the pipeline itself is down, is stage 5.
 
-## 7. There is no live agent in it yet
+## 7. No live model has run
 
-No model call has run in this repository. Stage 4 so far builds the harness
-side of the executor contract and exercises it with a recorded executor, which
-replays a stored patch, and with scripted executors that misbehave on purpose.
-That shows the controls sit around the executor and do not depend on its good
-behaviour. It shows nothing about any model or coding agent: not that one can
-do the work, not that two are interchangeable, not what it costs. The recorded
-executor is judged on 11 of 16 conformance clauses; the other five cannot be
-judged without a live model, and the suite says so and never calls it
-conformant.
+Every model in this repository is scripted: a small deterministic program
+pinned in `policy/models.yaml` with kind "scripted", labelled wherever it
+appears. The gateway, the tool box, three executors, the reviewer and the
+conformance suite all run for real around those scripts. That shows the
+controls sit around the executor and the model and do not depend on their good
+behaviour, and that the harness records the same thing whichever executor did
+the work.
+
+It shows nothing about any real model or coding agent: not that one can do the
+work, not that two are interchangeable in quality, not what it costs, not how
+one behaves when a file it reads tells it to ignore its instructions. The suite
+runs model portability on two scripted models and refuses to count it as a
+pass. No live adapter ships, because network code that has never run would be a
+claim this repository cannot back.
 
 ## 7a. No operating-system sandbox
 
@@ -88,6 +93,14 @@ changed, never what it read or sent elsewhere. The control is a container with
 only the worktree mounted, no credentials in its environment, and no network
 route except the model gateway. Until then, the deny list is enforced after the
 fact, at hand-back, and not before each action.
+
+## 7e. A command-line agent brings its own model
+
+The CLI executor runs a product that has its own model access. Its calls do not
+pass through this build's gateway, so the pin and the budget are the product's.
+Attack 46 shows it. The control is to point the product at the gateway's
+endpoint. The same executor also cannot be refused before an action: its file
+tools are its own, so only hand-back validation binds it.
 
 ## 7b. The one-time token proves delivery, not use
 

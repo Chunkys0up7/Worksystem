@@ -62,6 +62,10 @@ class WorkOrder:
     skills: tuple[SkillRef, ...]
     manifest: dict[str, str]
     canary: str | None = None
+    tools: Any = None            # harness.tools.ToolBox: pre-action deny enforcement
+    gateway: Any = None          # harness.gateway.Gateway: the only route to a model
+    reviewer_model: str | None = None
+    launched_by: str | None = None  # the person who started this work; cannot approve it
 
 
 @dataclass
@@ -76,7 +80,7 @@ class Executor(Protocol):
     """The whole contract an adapter implements."""
 
     id: str        # short product-neutral name, for example "recorded" or "loop"
-    kind: str      # "recorded" or "live"
+    kind: str      # "recorded", "scripted" or "live"; anything but live is labelled
     version: str
     identity: str  # the workload identity it signs as; must hold the executor role
 
@@ -122,6 +126,9 @@ def build_work_order(
     knowledge: Knowledge,
     workdir: Path,
     with_canary: bool = False,
+    gateway: Any = None,
+    reviewer_model: str | None = None,
+    launched_by: str | None = None,
 ) -> WorkOrder:
     if ids.kind_of(change_id) != "change":
         raise WorkOrderRefused(f"{change_id!r} is not a valid change id")
@@ -170,7 +177,25 @@ def build_work_order(
             target = worktree / ref.path / "SKILL.md"
             target.write_text(target.read_text() + "\n" + CANARY_LINE.format(token=canary) + "\n")
 
+    from .checks import governing_skills, run_skill_checks
+    from .tools import ToolBox
+
+    def feedback() -> dict[str, str]:
+        out: dict[str, str] = {}
+        for skill_id in governing_skills(in_scope, policy):
+            for result in run_skill_checks(knowledge.skills[skill_id], knowledge, policy,
+                                           code_root=worktree):
+                out[result.check_id] = "pass" if result.passed else f"fail: {result.detail}"
+        return out
+
+    tools = ToolBox(worktree, allowed, tuple(policy.deny_read), tuple(policy.deny_write),
+                    check_runner=feedback)
+
     return WorkOrder(
+        tools=tools,
+        gateway=gateway,
+        reviewer_model=reviewer_model,
+        launched_by=launched_by,
         change_id=change_id,
         spec_id=spec_id,
         executor=executor,

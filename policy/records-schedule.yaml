@@ -23,7 +23,7 @@ record_classes:
     floor_days: 1095
     ceiling_days: 1460
     legal_hold_override: true
-    fact_types: [change.proposed, executor.evidence]
+    fact_types: [change.proposed, executor.evidence, gateway.usage, review.advice]
 
 # Personal data never enters the ledger. It is recorded by reference: a key
 # ending in _ref that points into an erasable store. Any of these keys anywhere

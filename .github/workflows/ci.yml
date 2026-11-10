@@ -52,8 +52,11 @@ jobs:
       - name: Attack pack
         run: python -m harness attacks
 
-      - name: Executor conformance (recorded executor, no model)
-        run: python -m harness conformance recorded --show-run
+      - name: Executor conformance (scripted models, no live model)
+        run: |
+          python -m harness conformance recorded
+          python -m harness conformance cli-stub
+          python -m harness conformance loop --show-run
 
       - name: One pipeline, three tiers
         run: python -m harness demo

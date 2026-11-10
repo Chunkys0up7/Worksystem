@@ -77,9 +77,10 @@ Attack numbers refer to `python -m harness attacks`.
 
 ## 6. The executor contract (ADR-002, ADR-024, ADR-028; SPEC-0001)
 
-Built without any model: specs, roles, work orders, hand-back validation, the
-recorded executor and the conformance suite. Run it with
-`python -m harness conformance recorded --show-run`.
+Built without any live model: specs, roles, work orders, hand-back validation,
+the model gateway, the tool box, three executors, advisory review and the
+conformance suite. Every model is scripted and labelled. Run it with
+`python -m harness conformance loop --show-run`.
 
 | Claim | Status | Where | How to attack it |
 | --- | --- | --- | --- |
@@ -87,7 +88,7 @@ recorded executor and the conformance suite. Run it with
 | Several executors can exist, each with its own identity and key, and none can write a control fact. | Proven | Roles in `policy/identities.yaml`; one role per fact type, one role per identity | Attacks 33, 34. |
 | The harness builds the work order; the executor gets a private worktree without the signing keys. | Proven | `harness/workorder.py`, `test_work_order_contents` | Look for anything on `policy/deny.yaml`'s read list inside a worktree. |
 | Skill-map load: evidence lists exactly the released skills the work order resolved. | Proven | `validate_handback`, `test_clause_skill_map_load` | Attacks 28, 30. |
-| The skill text reached the executor. | Partial | A one-time token in the worktree copy of the skill; `test_clause_skill_canary` | Attack 29. The token proves delivery, not use. Use is proven by the paired checks. Not yet shown with a live model. |
+| The skill text reached the executor. | Partial | A one-time token in the worktree copy of the skill, read through the tool box by the loop executor | Attacks 29, 44. The token proves delivery, not use. Use is proven by the paired checks. Not shown with a live model. |
 | A change outside the spec's allowed paths is rejected, whatever the executor says it touched. | Proven | What changed is derived from a snapshot, not from the claim; `test_allowed_paths_bind_even_off_the_deny_list` | Attacks 22, 25. |
 | The deny list holds even when a spec is too broad. | Proven | `test_deny_list_binds_even_when_a_spec_allows_everything` | Attack 26. |
 | CI runs the released skill and its own harness, never the worktree's copy of either. | Proven | `harness/check_runner.py` loads both before the worktree is importable; `test_checks_use_the_released_skill_not_the_worktree_copy` | Attacks 23, 24. |
@@ -99,16 +100,22 @@ recorded executor and the conformance suite. Run it with
 | A partly judged executor is never called conformant. | Proven | `conformance/suite.py`: "n/a" is counted apart from "pass" | Read the verdict line for the recorded executor. |
 | An executor cannot read what it was not given. | **Limit** | The keys are not in the worktree, and nothing stops a process reading outside it | Attack 36. Needs an operating-system sandbox. |
 | The controls above were tested, not assumed. | Proven for hand-back validation | Six rules in `validate_handback` were each disabled in turn; a test failed every time | Disable one and run `python -m pytest tests/test_stage4.py`. A full mutation gate is stage 5. |
-| The executor can be swapped: two different executors, gates and evidence unchanged. | Not built | SPEC-0001 tasks 8 and 10 | Needs live models. |
-| Model portability: one executor, two model families. | Not built | SPEC-0001 tasks 7 and 9 | Needs live models. |
-| The deny list is honoured before each action, at a gateway. | Not built | Today it is enforced at hand-back, after the fact | SPEC-0001 tasks 7 and 8. |
-| Budget caps fail closed. | Not built | SPEC-0001 task 7 | |
+| The executor can be swapped: gates and evidence do not change. | Proven for the harness side | Three executors that share no code path (recorded, tool loop, command-line) leave identical control facts; `test_swap_drill` | Attack 45. None of the three is a live agent. Equality of live agents is not shown. |
+| A model is reachable only through the gateway, by a pinned id, in an approved role. | Proven | `harness/gateway.py` | Attack 37. |
+| Budget caps fail closed, and what was used is recorded by the gateway, not the executor. | Proven | Calls, tokens and time, shared across a piece of work | Attacks 38, 43. |
+| The deny list is enforced before an action when the executor works through the tool box. | Proven | `harness/tools.py`; refused attempts are recorded in the hand-back verdict | Attack 39. |
+| Deterministic gates block; AI review advises. | Proven | `harness/review.py`: advice is recorded as non-binding and the control plane records the same with or without it | Attacks 40, 41. |
+| The author never judges its own work. | Proven for model families | A reviewer from the author's model family is refused | Attack 42. |
+| The skill token is one-time. | Proven | A new token per work order | Attack 44. |
+| Model portability: one executor, two model families, same gates. | Not shown | The mechanism runs on two scripted models and is deliberately not counted as a pass | Needs two live models. |
+| A command-line agent's model calls are pinned and budgeted. | **Limit** | It brings its own model access | Attack 46. Point the product at the gateway. |
+| Any of this holds with a live model. | Not shown | No live model has run in this repository | Register an adapter for a pinned model and run `python -m harness conformance loop`. |
 
 ## 7. Not built yet
 
 | Claim | Stage |
 | --- | --- |
-| Live executors, the model gateway, the swap drill and model portability. | 4, tasks 7 to 10 |
+| A live model behind the gateway; a live coding-agent product as the CLI executor. | 4, needs credentials |
 | Confidence tower: mutation score, held-out tests, fitness functions as blocking gates. | 5 |
 | Two-person release for Tier C; harness-degraded mode. | 5 |
 | Agent runtime: case-pinned skill versions, checkpoint and ledger in one transaction. | 6 |

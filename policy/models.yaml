@@ -1,0 +1,39 @@
+# Model pins. A model is reachable only through the gateway, only by this exact
+# id, and only in the roles listed. An id that is not here is refused.
+#
+# The models pinned here are SCRIPTED: small deterministic programs that stand
+# in for a model so the whole path runs without credentials. They are labelled
+# as scripted wherever they appear. Nothing they do is evidence about any real
+# model.
+#
+# To add a live model: add a row with the provider's exact, versioned id, its
+# family, its roles and its data-path class, after Legal and data-path approval.
+# Then register an adapter for it at the edge (see executors/models.py). The
+# rule "at most two reasoning-model families plus one warm alternative" applies.
+
+version: 0
+
+# Per work order. Illustrative numbers.
+caps:
+  max_calls: 30
+  max_tokens: 120000
+  max_seconds: 120
+
+models:
+  - id: scripted-author-a
+    family: scripted-a
+    kind: scripted
+    roles: [author]
+    data_path: in-process, nothing leaves
+
+  - id: scripted-author-b
+    family: scripted-b
+    kind: scripted
+    roles: [author]
+    data_path: in-process, nothing leaves
+
+  - id: scripted-reviewer
+    family: scripted-r
+    kind: scripted
+    roles: [reviewer]
+    data_path: in-process, nothing leaves

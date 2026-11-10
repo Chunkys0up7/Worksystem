@@ -259,6 +259,16 @@ def cmd_commits(ctx: Context, args) -> int:
     return 1 if bad else 0
 
 
+DEFAULT_PARTNERS = {
+    # executor: (swap drill partner, second model for portability)
+    "recorded": ("loop", None),
+    "loop": ("cli-stub", "loop-b"),
+    "loop-b": ("cli-stub", "loop"),
+    "cli-stub": ("loop", None),
+    "cli": ("loop", None),
+}
+
+
 def cmd_conformance(ctx: Context, args) -> int:
     import tempfile
 
@@ -269,13 +279,15 @@ def cmd_conformance(ctx: Context, args) -> int:
 
     try:
         scenario = load_scenario(ctx.root, args.scenario)
-        executors.load(args.executor, scenario.dir)
+        executors.load(args.executor, scenario.dir, ctx.policy)
     except KeyError as exc:
         print(exc.args[0])
         return 2
+    swap, second = DEFAULT_PARTNERS.get(args.executor, (None, None))
     with tempfile.TemporaryDirectory(prefix="conformance-") as tmp:
-        run = run_suite(lambda directory: executors.load(args.executor, directory),
-                        scenario, ctx.root, ctx.keydir, Path(tmp))
+        run = run_suite(args.executor, scenario, ctx.root, ctx.keydir, Path(tmp),
+                        swap_with=args.swap or swap, second_model=args.second_model or second,
+                        tower_factory=_tower_factory())
         print(to_json(run) if args.json else render(run))
         if args.show_run and run.delivery:
             print("\nthe run:")
@@ -288,6 +300,15 @@ def cmd_conformance(ctx: Context, args) -> int:
             print(chain_mod.render_forward(chain_mod.forward(
                 scenario.decision, load_knowledge(run.root), load_policy(run.root), run.ledger)))
     return 1 if run.count("fail") else 0
+
+
+def _tower_factory():
+    """The confidence tower, when it is built (stage 5)."""
+    try:
+        from .tower import tower_factory
+    except ImportError:
+        return None
+    return tower_factory
 
 
 def cmd_attacks(ctx: Context, args) -> int:
@@ -354,6 +375,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("executor")
     p.add_argument("--scenario", default="pd-0002")
     p.add_argument("--show-run", action="store_true", help="also print the run and the ID chain")
+    p.add_argument("--swap", help="second executor for the swap drill")
+    p.add_argument("--second-model", help="second executor/model for model portability")
     p.add_argument("--json", action="store_true")
     p.set_defaults(fn=cmd_conformance)
 

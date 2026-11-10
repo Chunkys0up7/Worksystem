@@ -32,7 +32,7 @@ HASH_PREFIX = 12
 
 
 def render(order: WorkOrder, executor) -> str:
-    label = " (recorded)" if executor.kind == "recorded" else ""
+    label = "" if executor.kind == "live" else f" ({executor.kind})"
     lines = [
         f"Spec: {order.spec_id}",
         f"Change: {order.change_id}",

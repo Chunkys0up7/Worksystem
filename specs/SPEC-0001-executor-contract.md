@@ -211,10 +211,10 @@ As of 2026-11-10. Tasks 1 to 6 are built, in this order: 1, 2, 3, 4, 6, 5
 | 4 Work order, hand-back validator, trailers | Done | A5, A6, A7. `python -m harness commits check` runs in CI on this repository. |
 | 5 Recorded executor, conformance suite | Done | A1, A2, A13. 11 of 16 clauses judged; 5 need a live model. |
 | 6 SME change for PD-0002 | Done, as a scenario | `conformance/scenarios/pd-0002/`: RULE-0002, check 005, skill 1.1.0 signed, SPEC-0002. |
-| 7 Gateway, pins, caps | Not started | Needs model credentials. |
-| 8 `loop` executor | Not started | |
-| 9 Second model, reviewer | Not started | |
-| 10 `cli` executor, swap drill | Not started | |
+| 7 Gateway, pins, caps | Done, scripted models | `harness/gateway.py`. A11. No live adapter ships. |
+| 8 `loop` executor | Done, scripted model | `executors/loop.py`, through `harness/tools.py`. A3, A4 before the action. |
+| 9 Second model, reviewer | Mechanism done | A10 proven. A8 runs on two scripted models and is not counted as a pass. |
+| 10 `cli` executor, swap drill | Done with a stub agent | `executors/cli.py`. A9 across three executors. A real product is not exercised. |
 | 11 Close the chain, update docs | Done for what is built | A12 passes on the scenario. |
 
 Changes to this spec made while building it:
@@ -234,3 +234,9 @@ Changes to this spec made while building it:
 - **Tests were themselves tested.** Each of six hand-back rules was disabled in
   turn. Two were found to shadow each other, with no test failing; tests that
   isolate each were added.
+
+Second update, same day: tasks 7 to 10 are built with scripted models. What
+remains for this spec needs credentials: register a live adapter for a pinned
+model, run `python -m harness conformance loop`, and run a real headless
+coding-agent command as `cli` (`HARNESS_CLI_COMMAND`). D7 is attack 37 and D8
+is attack 44. A real prompt-injection test (D5) still needs a live model.
