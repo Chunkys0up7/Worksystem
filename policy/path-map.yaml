@@ -144,6 +144,10 @@ paths:
     tier: B
     reason: service blueprint
 
+  - glob: "knowledge/slices/**"
+    tier: B
+    reason: discovery slices; the go or kill decision and its outcome metric
+
   - glob: "knowledge/cards/**"
     tier: C
     data_classes: [credit-decision]

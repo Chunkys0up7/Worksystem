@@ -13,7 +13,7 @@ record_classes:
     fact_types: [tier.assigned, handback.result, evidence.mismatch, check.result,
                  tower.result, gate.result, reconciliation.result, conformance.result,
                  approval.recorded, release.approved, release.refused, release.manifest,
-                 degraded.backfilled]
+                 degraded.backfilled, defect.opened, reproduction.result, slice.decided]
 
   - name: knowledge-release
     floor_days: 2555

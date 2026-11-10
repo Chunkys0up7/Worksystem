@@ -103,7 +103,10 @@ class Context:
                 input=json.dumps(inputs), capture_output=True, text=True, timeout=60, cwd=home,
                 env={**os.environ, "PYTHONPATH": home, "PYTHONPYCACHEPREFIX": cache})
         if proc.returncode != 0:
-            raise RuntimeRefused(f"{unit}@{version} failed: {proc.stderr.strip()[-300:]}")
+            # Only the kind of failure goes on the record. An error message can
+            # carry the values that caused it, and those are personal data.
+            last = (proc.stderr.strip().splitlines() or ["unknown error"])[-1]
+            raise RuntimeRefused(f"{unit}@{version} failed: {last.split(':')[0].strip()[:80]}")
         return json.loads(proc.stdout)
 
 

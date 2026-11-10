@@ -163,5 +163,37 @@
     "variable_total_recent": "3000.00"
    }
   ]
+ },
+ {
+  "id": "SYN-009",
+  "about": "an amount that is not a number (DEF-0001)",
+  "expect": {
+   "route": "halt"
+  },
+  "documents": [
+   {
+    "type": "payslip",
+    "base_per_period": "NaN",
+    "frequency": "monthly",
+    "variable_history_months": 0,
+    "variable_total_in_window": "0"
+   }
+  ]
+ },
+ {
+  "id": "SYN-010",
+  "about": "an infinite variable amount with short history (DEF-0001)",
+  "expect": {
+   "route": "halt"
+  },
+  "documents": [
+   {
+    "type": "payslip",
+    "base_per_period": "5000.00",
+    "frequency": "monthly",
+    "variable_history_months": 3,
+    "variable_total_in_window": "Infinity"
+   }
+  ]
  }
 ]

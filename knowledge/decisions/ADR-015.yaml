@@ -1,0 +1,11 @@
+id: ADR-015
+type: architecture-decision
+title: "Defects: reproduce before fixing, and no out-of-band hotfix"
+statement: >
+  A defect is opened from what the ledger shows, reproduced against the
+  released version, and leaves a permanent regression check and held-out cases.
+  The fix is a change like any other and takes the same path. Knowledge drafted
+  from production traces needs its owner's sign-off before it counts.
+owner: architecture-sme
+implemented_in: harness/defect.py, harness/delivery.py
+status: adopted for this reference build

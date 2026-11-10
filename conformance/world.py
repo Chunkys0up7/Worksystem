@@ -51,3 +51,18 @@ def make_engine(env: Env, keydir: Path, *, adapters: dict[str, Any] | None = Non
     return Engine(graph, ledger=env.ledger, keydir=keydir, policy=env.policy,
                   vault=Vault(env.workdir / "vault"), releases_dir=releases_dir(env),
                   gateway=gateway or new_gateway(env, adapters), crash_before_commit=crash)
+
+
+def advance(env: Env, scenario, base_root: Path, tag: str) -> Env:
+    """Main moves forward: the repository as it stands in a later scenario, with
+    the same ledger, the same release store and the same vault as before."""
+    from dataclasses import replace
+
+    from harness.knowledge import load_knowledge
+    from harness.policy import load_policy
+
+    from .scenario import prepare
+
+    root = prepare(scenario, base_root, env.workdir / tag / "repo")
+    return replace(env, root=root, policy=load_policy(root), knowledge=load_knowledge(root),
+                   scenario_dir=root / "conformance" / "scenarios" / scenario.id)

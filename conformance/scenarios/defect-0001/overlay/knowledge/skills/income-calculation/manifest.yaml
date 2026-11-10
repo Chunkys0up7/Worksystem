@@ -1,0 +1,52 @@
+id: SKL-income-calculation
+version: 1.1.1
+owner: income-policy-sme
+title: Income calculation
+status: synthetic
+
+# Decisions and obligations this skill carries into the code.
+implements: [PD-0001, PD-0002, OBL-0001]
+
+# Cards this skill delivers.
+cards: [FACT-0001, RULE-0001, RULE-0002, CALC-0001, PROC-0001]
+
+# Every fact, rule and calculation card has a paired deterministic check.
+checks:
+  - id: CHK-income-calculation-001
+    covers: [FACT-0001]
+    module: checks/check_income.py
+    function: check_pay_periods_match_fact_card
+
+  - id: CHK-income-calculation-002
+    covers: [RULE-0001]
+    module: checks/check_income.py
+    function: check_variable_income_history_rule
+
+  - id: CHK-income-calculation-003
+    covers: [CALC-0001]
+    module: checks/check_income.py
+    function: check_calculation_vectors
+
+  - id: CHK-income-calculation-004
+    covers: [CALC-0001]
+    module: checks/check_income.py
+    function: check_result_names_its_cards
+
+  - id: CHK-income-calculation-005
+    covers: [RULE-0002]
+    module: checks/check_income.py
+    function: check_declining_variable_income_rule
+
+  # Added after DEF-0001. A defect leaves a permanent regression check.
+  - id: CHK-income-calculation-006
+    covers: [CALC-0001]
+    module: checks/check_income.py
+    function: check_non_finite_amounts_are_refused
+
+# A procedure card says how cases move, so it is checked by moving cases: an
+# eval run against the runtime, with an adversarial twin per conflicting case.
+evals:
+  - id: EVL-income-calculation-001
+    covers: [PROC-0001]
+    suite: runtime/evals.py
+

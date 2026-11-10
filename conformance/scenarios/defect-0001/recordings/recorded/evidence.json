@@ -1,0 +1,23 @@
+{
+  "recorded_at": "2026-11-10",
+  "recorded_from": "A patch written by a coding agent in an interactive session, then stored. Replayed here without any model.",
+  "model": null,
+  "skills_loaded": [
+    {
+      "id": "SKL-income-calculation",
+      "version": "1.1.1",
+      "content_hash": "2bc167ef19df28ad0e327b05589cca57c4a8d49e0fc786b5bddefdeb9ec63fba"
+    }
+  ],
+  "files_touched": [
+    "services/decision_income/calc.py"
+  ],
+  "checks_claimed": {
+    "CHK-income-calculation-001": "pass",
+    "CHK-income-calculation-002": "pass",
+    "CHK-income-calculation-003": "pass",
+    "CHK-income-calculation-004": "pass",
+    "CHK-income-calculation-005": "pass",
+    "CHK-income-calculation-006": "pass"
+  }
+}

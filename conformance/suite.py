@@ -104,12 +104,33 @@ def new_gateway(env: Env, adapters: dict[str, Any] | None = None, caps=None) -> 
                    caps=caps)
 
 
+def ensure_reproduced(env: Env, scenario: Scenario, keydir: Path) -> None:
+    """For a defect scenario: open the defect and reproduce it, as people would
+    have before any work order. The repository's code stands for the release."""
+    if not scenario.defect or env.ledger.find(fact_type="reproduction.result"):
+        return
+    from harness import defect
+
+    trace = env.ledger.append(sign_submission(
+        keydir, "rt-orchestrator", "case.halted",
+        {"subject": "case-from-production", "step": 3, "node": "calculate",
+         "reason": "decision-income failed on an input"}, ["case-from-production"]))
+    defect.open_defect(scenario.defect, scenario.title, traces=[trace.id],
+                       unit="decision-income", version="as merged", ledger=env.ledger,
+                       keydir=keydir)
+    skill_id = next(iter(env.knowledge.skills))
+    defect.reproduce(scenario.defect, env.knowledge.skills[skill_id], knowledge=env.knowledge,
+                     policy=env.policy, code_root=env.root, against="the merged code",
+                     ledger=env.ledger, keydir=keydir)
+
+
 def deliver(env: Env, scenario: Scenario, executor, keydir: Path, *,
             with_canary: bool = False, gateway: Gateway | None = None,
             reviewer_model: str | None = None, launched_by: str | None = None,
             tower: Tower | None = None, change_id: str | None = None,
             workdir: Path | None = None) -> tuple[WorkOrder, DeliveryRun]:
     """Build the scenario's work order and run it through the harness."""
+    ensure_reproduced(env, scenario, keydir)
     order = build_work_order(
         change_id or scenario.change, scenario.spec, executor=executor.identity, root=env.root,
         policy=env.policy, knowledge=env.knowledge, workdir=workdir or env.workdir,
@@ -176,6 +197,7 @@ def run_suite(
     if problems:
         return run
 
+    ensure_reproduced(env, scenario, keydir)
     base_before = snapshot(root)
     gateway = new_gateway(env)
     order = build_work_order(

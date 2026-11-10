@@ -58,7 +58,11 @@ def forward(decision_id: str, knowledge: Knowledge, policy: Policy,
         if ledger is not None:
             for entry in ledger.find(fact_type="gate.result", ref=spec.id):
                 executor = entry.payload.get("executor") or {}
+                released = next(
+                    (m for m in ledger.find(fact_type="release.manifest")
+                     if m.payload.get("change") == entry.payload["subject"]), None)
                 changes.append({
+                    "released": f"{released.payload['subject']} in {released.id}" if released else "",
                     "change": entry.payload["subject"],
                     "outcome": entry.payload["outcome"],
                     "tier": entry.payload.get("tier"),
@@ -173,7 +177,8 @@ def render_forward(data: dict[str, Any]) -> str:
             tier = f"Tier {change['tier']}, " if change["tier"] else ""
             lines.append(
                 f"    change {change['change']}{who}{label}: {tier}"
-                f"{change['outcome']} in {change['ledger']}")
+                f"{change['outcome']} in {change['ledger']}"
+                + (f", released as {change['released']}" if change["released"] else ""))
     for skill in data["skills"]:
         lines.append(f"  skill {skill['skill']}")
         lines.append(f"    {skill['state']}")

@@ -20,6 +20,8 @@ KINDS: dict[str, re.Pattern[str]] = {
     "change": re.compile(r"^CHG-[A-Za-z0-9-]+$"),
     "check": re.compile(r"^CHK-[a-z0-9-]+-\d{3}$"),
     "eval": re.compile(r"^EVL-[a-z0-9-]+-\d{3}$"),
+    "defect": re.compile(r"^DEF-\d{4}$"),
+    "slice": re.compile(r"^SLICE-\d{4}$"),
     "ledger-entry": re.compile(r"^LED-\d+$"),
 }
 

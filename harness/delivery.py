@@ -125,6 +125,20 @@ def run_work_order(
             f"BLOCK: work order is for {order.executor}, executor signs as {executor.identity}")
         return run
 
+    # Reproduce before fixing: a spec that fixes a defect starts no work until
+    # the defect has been reproduced against the released version.
+    spec = knowledge.specs.get(order.spec_id)
+    if spec is not None and spec.fixes:
+        from .defect import not_reproduced
+
+        waiting = not_reproduced(spec.fixes, ledger)
+        if waiting:
+            run.steps.append(
+                f"BLOCK: {order.spec_id} fixes {', '.join(waiting)}, which has not been "
+                "reproduced. Reproduce before fixing.")
+            return run
+        refs.extend(spec.fixes)
+
     # 1. The executor proposes, under its own identity.
     try:
         entry = record(executor.identity, "change.proposed",

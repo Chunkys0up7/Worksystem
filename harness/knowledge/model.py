@@ -87,6 +87,11 @@ class Spec:
     def allowed_paths(self) -> list[str]:
         return list(self.meta.get("allowed_paths", []))
 
+    @property
+    def fixes(self) -> list[str]:
+        """Defects this spec fixes. Each must be reproduced before work starts."""
+        return list(self.meta.get("fixes", []))
+
 
 def parse_front_matter(text: str) -> dict[str, Any]:
     if not text.startswith("---\n"):
@@ -106,6 +111,7 @@ class Knowledge:
     cards: dict[str, dict[str, Any]] = field(default_factory=dict)
     skills: dict[str, Skill] = field(default_factory=dict)
     specs: dict[str, Spec] = field(default_factory=dict)
+    slices: dict[str, dict[str, Any]] = field(default_factory=dict)
     load_problems: list[str] = field(default_factory=list)
 
 
@@ -134,6 +140,7 @@ def load_knowledge(root: Path) -> Knowledge:
             knowledge.moments[moment["id"]] = moment
     _load_yaml_dir(base / "decisions", knowledge, knowledge.decisions)
     _load_yaml_dir(base / "cards", knowledge, knowledge.cards)
+    _load_yaml_dir(base / "slices", knowledge, knowledge.slices)
     for manifest_path in sorted((base / "skills").glob("*/manifest.yaml")):
         manifest = yaml.safe_load(manifest_path.read_text()) or {}
         skill = Skill(dir=manifest_path.parent, manifest=manifest)
@@ -206,6 +213,15 @@ def validate(knowledge: Knowledge, policy: Policy) -> list[str]:
                 problems.append(f"{card_id}: uses unknown card {used}")
         if not any(card_id in s.cards for s in knowledge.skills.values()):
             problems.append(f"{card_id}: no skill delivers this card")
+        # The return path: a card drafted from production traces is a way to
+        # poison knowledge. It needs its owner's sign-off, named, before it counts.
+        if card.get("provenance") == "drafted-from-traces":
+            if not card.get("traces"):
+                problems.append(f"{card_id}: drafted from traces but cites none")
+            if card.get("approved_by") != card.get("owner") or not card.get("owner"):
+                problems.append(
+                    f"{card_id}: drafted from traces and not signed off by its owner "
+                    f"({card.get('owner')})")
 
     mapped = {s["id"]: s for s in policy.skill_map}
     repo_files = _files(knowledge.root)
@@ -288,9 +304,51 @@ def validate(knowledge: Knowledge, policy: Policy) -> list[str]:
                 problems.append(f"{spec.id}: cites {cited_id}, which is not in the register")
         if not spec.allowed_paths:
             problems.append(f"{spec.id}: states no allowed paths")
+        for defect in spec.fixes:
+            if ids.kind_of(defect) != "defect":
+                problems.append(f"{spec.id}: fixes {defect!r}, which is not a defect id")
+
+    for slice_id, item in knowledge.slices.items():
+        if ids.kind_of(slice_id) != "slice":
+            problems.append(f"{slice_id}: not a valid slice id")
+        if item.get("decision") not in ("go", "clarify", "kill"):
+            problems.append(f"{slice_id}: decision must be go, clarify or kill")
+        if not item.get("outcome_metric"):
+            problems.append(f"{slice_id}: states no outcome metric")
+        for moment_id in item.get("moments", []):
+            moment = knowledge.moments.get(moment_id)
+            if moment is None:
+                problems.append(f"{slice_id}: moment {moment_id} is on no blueprint")
+                continue
+            # What makes the slice regulated is recorded on the slice, before go or kill.
+            for obligation in moment.get("obligations", []):
+                if obligation not in item.get("obligations", []):
+                    problems.append(
+                        f"{slice_id}: {moment_id} carries {obligation}, which the slice does not record")
+            for data_class in moment.get("data_classes", []):
+                if data_class not in item.get("data_classes", []):
+                    problems.append(
+                        f"{slice_id}: {moment_id} handles {data_class}, which the slice does not record")
+        for decision in item.get("decisions", []) + item.get("obligations", []):
+            if decision not in knowledge.decisions:
+                problems.append(f"{slice_id}: {decision} is not in the register")
 
     for skill_id in mapped:
         if skill_id not in knowledge.skills:
             problems.append(f"skill map names {skill_id}, which does not exist")
 
     return problems
+
+
+def slice_tier(item: dict[str, Any], knowledge: Knowledge, policy: Policy) -> str:
+    """The tier a slice should expect, from its moments and data classes. Derived, not chosen."""
+    floors = policy.tier_rules.get("data_class_floor", {})
+    order = {"A": 0, "B": 1, "C": 2}
+    tier = "A"
+    for data_class in item.get("data_classes", []):
+        floor = floors.get(data_class, "C")
+        tier = floor if order[floor] > order[tier] else tier
+    regulated = any(knowledge.moments.get(m, {}).get("regulated") for m in item.get("moments", []))
+    if regulated or item.get("obligations"):
+        tier = "C"
+    return tier

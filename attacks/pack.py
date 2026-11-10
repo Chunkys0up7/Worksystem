@@ -36,7 +36,8 @@ from harness.ledger import (  # noqa: E402
 from harness.ledger.store import COLUMNS, SqliteStore, _to_row  # noqa: E402
 from harness.policy import PolicyError, load_policy  # noqa: E402
 from harness.tiering import TierCheckFailed, classify  # noqa: E402
-from harness import degraded, trailers  # noqa: E402
+from harness import defect, degraded, trailers  # noqa: E402
+from harness.delivery import run_work_order  # noqa: E402
 from harness.release import ReleaseRefused, approve, release, verify_stored  # noqa: E402
 from harness.tower import make_tower  # noqa: E402
 from conformance import world as W  # noqa: E402
@@ -1338,6 +1339,133 @@ def data_to_unapproved_model(sb: Sandbox) -> Result:
     return Result(state["explained_by"] == "template" and not served,
                   f"{tripped[0].payload['reason'] if tripped else 'no trip'}; nothing was sent, "
                   "and the applicant got the template")
+
+
+# ------------------------------------------------------------ the defect loop
+
+def _defect_world(sb: Sandbox, tag: str):
+    """r1 released, a case halted on a non-finite amount, the defect opened, and
+    main moved on to hold the regression check and the approved fix spec."""
+    env, _, cases = _world(sb, tag)
+    engine = W.make_engine(env, sb.keydir)
+    for case_id in ("SYN-009", "SYN-010"):
+        _case(engine, cases, case_id)
+    trace = env.ledger.find(fact_type="case.halted")[0]
+    defect.open_defect("DEF-0001", "fails on a non-finite amount", traces=[trace.id],
+                       unit="decision-income", version="r1", ledger=env.ledger, keydir=sb.keydir)
+    scenario = load_scenario(sb.root, "defect-0001")
+    later = W.advance(env, scenario, sb.root, "main2")
+    return env, later, scenario, engine, cases
+
+
+def _reproduce(sb: Sandbox, later):
+    return defect.reproduce_against_release(
+        "DEF-0001", later.knowledge.skills["SKL-income-calculation"], knowledge=later.knowledge,
+        policy=later.policy, releases_dir=W.releases_dir(later), unit="decision-income",
+        version="r1", ledger=later.ledger, keydir=sb.keydir)
+
+
+@attack(
+    "a fix is started before the defect is reproduced",
+    "Reproduce before fixing.",
+    "The fix spec is approved and an executor is ready. Nobody has reproduced the defect.",
+)
+def fix_before_reproduction(sb: Sandbox) -> Result:
+    env, later, scenario, _, _ = _defect_world(sb, "d1")
+    executor = registry.load("recorded", later.scenario_dir, later.policy)
+    order = build_work_order(scenario.change, scenario.spec, executor=executor.identity,
+                             root=later.root, policy=later.policy, knowledge=later.knowledge,
+                             workdir=later.workdir / "try")
+    before = len(later.ledger.entries())
+    run = run_work_order(order, executor, ledger=later.ledger, keydir=sb.keydir,
+                         policy=later.policy, knowledge=later.knowledge)
+    return Result(run.outcome == "blocked" and len(later.ledger.entries()) == before,
+                  run.steps[0].replace("BLOCK: ", ""))
+
+
+@attack(
+    "the executor says it reproduced the defect",
+    "Reproduction is run and recorded by the gates role, against the released version.",
+    "The executor writes the reproduction result itself.",
+)
+def executor_reproduces(sb: Sandbox) -> Result:
+    env, later, _, _, _ = _defect_world(sb, "d2")
+    try:
+        later.ledger.append(sign_submission(
+            sb.keydir, "executor-loop", "reproduction.result",
+            {"subject": "DEF-0001", "reproduced": True}, ["DEF-0001"]))
+    except LedgerRejected as exc:
+        waiting = defect.not_reproduced(["DEF-0001"], later.ledger)
+        return Result(waiting == ["DEF-0001"], f"rejected: {exc.code}; still not reproduced")
+    return Result(False, "the executor's reproduction was accepted")
+
+
+@attack(
+    "a defect with nothing behind it",
+    "A defect cites the ledger entries that show it.",
+    "A defect is opened citing no trace, then citing an entry that does not exist.",
+)
+def defect_without_trace(sb: Sandbox) -> Result:
+    env, _, _ = _world(sb, "d3")
+    held = []
+    for traces in ([], ["LED-9999"]):
+        try:
+            defect.open_defect("DEF-0009", "x", traces=traces, unit="u", version="r1",
+                               ledger=env.ledger, keydir=sb.keydir)
+        except defect.DefectError as exc:
+            held.append(str(exc)[:70])
+    return Result(len(held) == 2, "; ".join(held))
+
+
+@attack(
+    "a hotfix applied straight to production",
+    "No out-of-band hotfix: the fix takes the same road as any change.",
+    "The correct fix is copied directly over the stored release, skipping the harness.",
+)
+def hotfix_in_place(sb: Sandbox) -> Result:
+    env, later, scenario, engine, cases = _defect_world(sb, "d4")
+    fixed = later.scenario_dir / "scripted/a/services/decision_income/calc.py"
+    stored = W.releases_dir(env) / "decision-income/r1/services/decision_income/calc.py"
+    stored.write_text(fixed.read_text())
+    state = _case(engine, cases, "SYN-001", "after-hotfix")
+    return Result(state["status"] == "halted" and "result_ref" not in state,
+                  f"the runtime refused to run it: {_halt_reason(env)[:90]}. A correct fix, "
+                  "applied the wrong way, is still not run")
+
+
+@attack(
+    "knowledge drafted from production is slipped in",
+    "A card drafted from traces does not count until its owner signs it off.",
+    "A rule card is marked as drafted from traces, with no sign-off, then with someone else's.",
+)
+def unsigned_trace_card(sb: Sandbox) -> Result:
+    env, later, _, _, _ = _defect_world(sb, "d5")
+    card = later.root / "knowledge/cards/RULE-0002.yaml"
+    original = card.read_text()
+    found = []
+    for extra in ("provenance: drafted-from-traces\ntraces: [LED-12]\n",
+                  "provenance: drafted-from-traces\ntraces: [LED-12]\napproved_by: an-agent\n"):
+        card.write_text(original + extra)
+        found += [p for p in validate(load_knowledge(later.root), later.policy) if "RULE-0002" in p]
+    return Result(len(found) == 2, found[0] if found else "validation passed")
+
+
+@attack(
+    "the fix reaches a case that was already running",
+    "A fix is a release like any other: running cases keep their version.",
+    "A case is waiting for a person when the fix is released.",
+)
+def fix_under_running_case(sb: Sandbox) -> Result:
+    env, later, scenario, engine, cases = _defect_world(sb, "d6")
+    _case(engine, cases, "SYN-004", "held-open")
+    _reproduce(sb, later)
+    W.deliver_and_release(later, scenario, sb.keydir, "recorded", tag="fix")
+    new = _case(engine, cases, "SYN-010", "after-fix")
+    engine.resume("held-open", "case-reviewer-dee", cases["SYN-004"]["documents"][0])
+    old = engine.run("held-open")
+    return Result(old["decided_by"].endswith("@r1") and new["status"] == "halted",
+                  f"the running case finished on {old['decided_by']}. A new case with the "
+                  f"infinite amount, which r1 accepted, is now refused: {new['status']}")
 
 
 # ------------------------------------------------------------------ runner

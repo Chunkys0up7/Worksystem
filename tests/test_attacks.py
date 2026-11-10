@@ -18,7 +18,7 @@ STATED_LIMITS = {
 
 def test_attack_pack():
     results = run_all()
-    assert len(results) >= 68
+    assert len(results) >= 74
     broken = [(a.name, r.observed) for a, r in results if r.held is False]
     assert broken == []
     limits = {a.name for a, r in results if r.held is None}

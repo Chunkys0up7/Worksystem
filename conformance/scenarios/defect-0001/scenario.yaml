@@ -1,0 +1,19 @@
+# A replayable scenario: a defect found in production, after the PD-0002 change
+# was released. Synthetic.
+#
+# It extends pd-0002: the repository as it stands once that change has merged.
+# On top of that, people have done three things before any agent runs:
+#   - reproduced the defect against the released version (on the ledger)
+#   - added a permanent regression check to the skill (1.1.1) and held-out cases
+#   - approved SPEC-0010, which names the defect it fixes
+#
+# The new check is red. The executor's job is to turn it green.
+
+id: defect-0001
+title: Refuse amounts that are not finite numbers
+extends: pd-0002
+spec: SPEC-0010
+change: CHG-def-0001
+decision: OBL-0001
+red_check: CHK-income-calculation-006
+defect: DEF-0001

@@ -23,7 +23,8 @@ roles:
 
   - name: gates
     description: CI validating hand-backs, re-running checks, recording gates.
-    may_write: [handback.result, evidence.mismatch, check.result, tower.result, gate.result]
+    may_write: [handback.result, evidence.mismatch, check.result, tower.result, gate.result,
+                reproduction.result]
 
   - name: skill-publisher
     description: Release of SME-owned skills, after review and merge.
@@ -73,6 +74,14 @@ roles:
   - name: evals
     description: Runs evals against the runtime and records the result.
     may_write: [eval.result]
+
+  - name: triage
+    description: Opens a defect from what the ledger shows.
+    may_write: [defect.opened]
+
+  - name: product-owner
+    description: A person who decides whether a slice goes ahead.
+    may_write: [slice.decided]
 
 identities:
   - name: agent-executor
@@ -142,3 +151,10 @@ identities:
 
   - name: ci-evals
     role: evals
+
+  - name: ci-triage
+    role: triage
+
+  - name: owner-pat
+    role: product-owner
+    note: A person. Synthetic.
