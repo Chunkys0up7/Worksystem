@@ -1,0 +1,3 @@
+# Skill content hashes are taken over file bytes. Line endings must not vary by
+# platform, or a clone on Windows would fail skill verification.
+* text=auto eol=lf

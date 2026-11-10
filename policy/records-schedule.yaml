@@ -1,0 +1,52 @@
+# Records schedule as code. Retention is a window: a floor (keep at least this
+# long), a ceiling (dispose after this), and a legal hold that overrides both.
+# The record class is fixed at write time, from the fact type.
+#
+# The day counts are ILLUSTRATIVE. They are not legal advice and not any
+# institution's schedule. Legal owns the real numbers.
+
+record_classes:
+  - name: delivery-evidence
+    floor_days: 2555
+    ceiling_days: 2920
+    legal_hold_override: true
+    fact_types: [tier.assigned, check.result, gate.result, reconciliation.result]
+
+  - name: knowledge-release
+    floor_days: 2555
+    ceiling_days: 2920
+    legal_hold_override: true
+    fact_types: [skill.published]
+
+  - name: change-record
+    floor_days: 1095
+    ceiling_days: 1460
+    legal_hold_override: true
+    fact_types: [change.proposed]
+
+# Personal data never enters the ledger. It is recorded by reference: a key
+# ending in _ref that points into an erasable store. Any of these keys anywhere
+# in a payload rejects the write.
+personal_data_keys:
+  - name
+  - first_name
+  - last_name
+  - ssn
+  - tax_id
+  - date_of_birth
+  - dob
+  - address
+  - email
+  - phone
+  - account_number
+  - income
+  - income_amount
+  - employer
+
+# Completeness: for every entry of one type, these companions must exist for
+# the same subject. The reconciler reports gaps; it does not repair them.
+completeness:
+  - for_each: change.proposed
+    require: [tier.assigned]
+  - for_each: tier.assigned
+    require: [gate.result]

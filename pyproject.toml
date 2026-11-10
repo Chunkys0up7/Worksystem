@@ -1,0 +1,14 @@
+[project]
+name = "agentic-lifecycle-reference"
+version = "0.1.0"
+description = "Reference build: an evidence-led, tiered agentic delivery lifecycle on a synthetic service slice."
+requires-python = ">=3.11"
+dependencies = ["pyyaml>=6", "cryptography>=42"]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "hypothesis>=6"]
+postgres = ["psycopg[binary]>=3.1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
