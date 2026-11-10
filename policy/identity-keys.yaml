@@ -7,7 +7,9 @@ public_keys:
   approver-ana: 37b44dee169e2d43f56b6b71f462d555040d339bd7c55e068c6e70008db4ea26
   approver-ben: d129c91cbde27f5d68698e4c18acd52b8628746deeae3735e4b6aa26b3304d82
   approver-cy: 247691dad6de841a313be2a2ad6ec2f09d58bf14fc56c0ab9e51e28255cc7fdc
+  case-reviewer-dee: cdc90b99df5d582df67eb40ae8b45cbff419dae83454231c007b95d9a286ccbe
   ci-conformance: 0f447b079e625acc96f179b2765f564841ab1abcc4a880c4cd3e1fc08dd7913c
+  ci-evals: 84c77ef80c67329e860bc645d9326d0709a08dfc21299ee31b27cd154d2e9bf0
   ci-gates: 133afe69ac66e92b533a99d26e114acd665152edf045bcbd4b7b11191a7d3bc7
   ci-reconciler: 4cd91c85ddf3fdebece64d25f0543e2f6a72aaeac0a11b145e2edd4e4b04eea7
   ci-release: 0b10f16311d2347ff5a396304408908dbcef120bc1f498fa1c31043f32dc45dc
@@ -16,4 +18,7 @@ public_keys:
   executor-loop: 34a210d084050e582c401f805b8fc4058e7bd8a9cd1b923a5c4af2a527e6f6be
   executor-recorded: c0b873654585b45d65c570f94b3ea41e87967076b3af377db083c1d4a5a825ba
   model-gateway: 06e703d00c12dce7bdbf86d071994042f2759f4e9bbbfc92ff915825c758e57e
+  rt-explainer: ac13cdedffd2a2b3a150b0f2ad0a45ebd676405c754aee9d6015f3f0982abe48
+  rt-orchestrator: 9c79a8f8e781acc07359bba359b267ea57e8103c2f3cfc6360d4fd5bdbaf9e9c
   skill-publisher: b8a751f2c692fbd2b6f86ce9654e2144513700b69ca3b4637cfaf1f7818baa2b
+  svc-decision-income: 181cb8018ce64d10845bb4d9817e181bc73dfad6edd72cafefc60546345ba88d

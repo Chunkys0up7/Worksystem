@@ -13,9 +13,9 @@ recorded or stubbed, and are labelled when they are.
 | 3 | **Knowledge.** Service blueprint slice, Fact, Rule, Calculation and Procedure cards, a decision register, one SME-owned skill, signed and content-hashed, with paired deterministic checks. The ID chain walked both ways. | Built |
 | 4 | **Executor contract.** Specs, roles, work orders, hand-back validation, re-derived evidence, commit trailers, the model gateway (pins, roles, budget), the tool box (deny before the action), three executors (recorded, tool loop, command-line), advisory review, the swap drill and the conformance suite, on one replayable scenario. Spec: `specs/SPEC-0001-executor-contract.md`. | Built, with scripted models. No live model has run. |
 | 5 | **Confidence tower and release.** Fitness functions, held-out cases and mutation score as blocking gates by tier. Two-person release for Tier C bound to the gate result. Sealed release manifest and a versioned release store. Harness-degraded mode. Spec: `specs/SPEC-0003-confidence-tower-and-release.md`. | Built. Not built: Tier A auto-merge, promotion from git, canary and rollback. |
-| 6 | **Runtime.** A small agent graph where the regulated figure comes only from the decision service, skills are pinned on the case at start, and the checkpoint and ledger entry share one Postgres transaction. Evals for procedure cards. | |
+| 6 | **Runtime.** A small case engine with a node contract. The regulated figure comes only from the decision service at the version pinned on the case. Checkpoint and ledger entries in one transaction, on SQLite and Postgres. Personal data by reference in an erasable vault. Human review that survives a restart. An eval with adversarial twins for the procedure card. Spec: `specs/SPEC-0004-agent-runtime.md`. | Built, with scripted models. Not built: a real orchestration product, shadow and canary, fairness monitoring. |
 | 7 | **Change and defect loop.** A production trace raises a defect; reproduce first; a permanent regression test and eval. A skill update that reaches new cases only. | |
-| 8 | **Attack pack, complete.** Every claim in both programmes has an attack. Degraded-mode drill. | Started: 55 attacks |
+| 8 | **Attack pack, complete.** Every claim in both programmes has an attack. Degraded-mode drill. | Started: 68 attacks |
 
 ## Why this order
 

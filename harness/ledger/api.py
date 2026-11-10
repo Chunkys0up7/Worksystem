@@ -15,6 +15,7 @@ must block (see harness/gates.py).
 from __future__ import annotations
 
 import json
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -174,6 +175,33 @@ def find_personal_data(payload: Any, denied: frozenset[str], path: str = "") -> 
     return None
 
 
+class LedgerTx:
+    """One open transaction. Entries appended here chain from each other."""
+
+    def __init__(self, ledger: "Ledger", raw: Any) -> None:
+        self._ledger, self._raw = ledger, raw
+        self.last: Entry | None = None
+        self._head_checked = False
+
+    def execute(self, sql: str, params: tuple = ()) -> None:
+        """Write another row in the same transaction. Use ? for parameters."""
+        self._raw.execute(sql, params)
+
+    def append(self, sub: Submission) -> Entry:
+        digest, record_class = self._ledger._check(sub)
+        if self.last is not None:
+            head = (self.last.seq, self.last.entry_hash)
+        else:
+            head = self._raw.head()
+            if not self._head_checked:
+                self._ledger._anchored(head)
+                self._head_checked = True
+        entry = self._ledger._entry(sub, digest, record_class, head)
+        self._raw.append(entry)
+        self.last = entry
+        return entry
+
+
 class Ledger:
     def __init__(
         self,
@@ -189,7 +217,8 @@ class Ledger:
 
     # ---------------------------------------------------------------- write
 
-    def append(self, sub: Submission) -> Entry:
+    def _check(self, sub: Submission) -> tuple[str, Any]:
+        """Every rule a submission must pass before it can be written."""
         policy = self.policy
 
         ident = policy.identities.get(sub.actor)
@@ -220,22 +249,10 @@ class Ledger:
                 "personal-data-in-payload",
                 f"{hit}: personal data is recorded by reference only",
             )
+        return digest, record_class
 
-        try:
-            head = self.store.head()
-        except Exception as exc:  # any store failure blocks
-            raise LedgerUnavailable(f"cannot read ledger head: {exc}") from exc
-
-        try:
-            anchored = self.anchor.read()
-        except Exception as exc:
-            raise LedgerUnavailable(f"cannot read anchor: {exc}") from exc
-        if head != anchored:
-            raise LedgerRejected(
-                "chain-head-mismatch",
-                f"store head {head} does not match anchor {anchored}",
-            )
-
+    def _entry(self, sub: Submission, digest: str, record_class: Any,
+               head: tuple[int, str] | None) -> Entry:
         seq = head[0] + 1 if head else 1
         prev_hash = head[1] if head else GENESIS
         now = self.clock()
@@ -254,8 +271,27 @@ class Ledger:
             prev_hash=prev_hash,
             entry_hash="",
         )
-        entry = Entry(**{**partial.__dict__, "entry_hash": hash_obj(partial.body())})
+        return Entry(**{**partial.__dict__, "entry_hash": hash_obj(partial.body())})
 
+    def _anchored(self, head: tuple[int, str] | None) -> None:
+        try:
+            anchored = self.anchor.read()
+        except Exception as exc:
+            raise LedgerUnavailable(f"cannot read anchor: {exc}") from exc
+        if head != anchored:
+            raise LedgerRejected(
+                "chain-head-mismatch",
+                f"store head {head} does not match anchor {anchored}",
+            )
+
+    def append(self, sub: Submission) -> Entry:
+        digest, record_class = self._check(sub)
+        try:
+            head = self.store.head()
+        except Exception as exc:  # any store failure blocks
+            raise LedgerUnavailable(f"cannot read ledger head: {exc}") from exc
+        self._anchored(head)
+        entry = self._entry(sub, digest, record_class, head)
         try:
             self.store.append(entry)
         except Exception as exc:
@@ -267,6 +303,39 @@ class Ledger:
             # mismatch and refuse, so the gap cannot pass unnoticed.
             raise LedgerUnavailable(f"entry stored but anchor failed: {exc}") from exc
         return entry
+
+    @contextmanager
+    def transaction(self) -> Iterator["LedgerTx"]:
+        """Ledger entries and other rows, written together or not at all.
+
+        This is how the runtime writes a checkpoint and its ledger entries in
+        ONE database transaction: there is no moment at which a case has moved
+        and the evidence has not, or the reverse. Anything raised inside the
+        block rolls the whole thing back.
+        """
+        try:
+            raw = self.store.begin()
+        except Exception as exc:
+            raise LedgerUnavailable(f"cannot open a transaction: {exc}") from exc
+        tx = LedgerTx(self, raw)
+        try:
+            yield tx
+            raw.commit()
+        except BaseException:
+            raw.rollback()
+            raise
+        if tx.last is not None:
+            try:
+                self.anchor.write(tx.last.seq, tx.last.entry_hash)
+            except Exception as exc:
+                raise LedgerUnavailable(f"committed but anchor failed: {exc}") from exc
+
+    def query(self, sql: str, params: tuple = ()) -> list[tuple]:
+        """Read rows that were written beside ledger entries (for example checkpoints)."""
+        try:
+            return self.store.query(sql, params)
+        except Exception as exc:
+            raise LedgerUnavailable(f"cannot read: {exc}") from exc
 
     # ----------------------------------------------------------------- read
 

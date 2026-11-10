@@ -47,11 +47,32 @@ roles:
 
   - name: approver
     description: A named person approving a Tier C release. Never the person who launched the work.
-    may_write: [approval.recorded]
+    may_write: [approval.recorded, migration.approved]
 
   - name: release
     description: Decides a release from recorded gates and approvals, and seals the manifest.
     may_write: [release.approved, release.refused, release.manifest, degraded.backfilled]
+
+  - name: runtime
+    description: The agent runtime's orchestrator. Moves a case and records each step.
+    may_write: [case.started, node.completed, case.routed, case.completed, case.halted,
+                guard.tripped, case.migrated]
+
+  - name: decision-service
+    description: A deterministic decision service. The only source of a regulated figure.
+    may_write: [decision.made]
+
+  - name: runtime-agent
+    description: An agent node in the runtime. Drafts; decides nothing.
+    may_write: [agent.output]
+
+  - name: case-reviewer
+    description: A person who resolves a case the runtime routed to them.
+    may_write: [review.resolved]
+
+  - name: evals
+    description: Runs evals against the runtime and records the result.
+    may_write: [eval.result]
 
 identities:
   - name: agent-executor
@@ -105,3 +126,19 @@ identities:
 
   - name: ci-release
     role: release
+
+  - name: rt-orchestrator
+    role: runtime
+
+  - name: svc-decision-income
+    role: decision-service
+
+  - name: rt-explainer
+    role: runtime-agent
+
+  - name: case-reviewer-dee
+    role: case-reviewer
+    note: A person. Synthetic.
+
+  - name: ci-evals
+    role: evals

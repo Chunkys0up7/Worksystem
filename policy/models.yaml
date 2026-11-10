@@ -25,15 +25,28 @@ models:
     kind: scripted
     roles: [author]
     data_path: in-process, nothing leaves
+    data_classes: []
 
   - id: scripted-author-b
     family: scripted-b
     kind: scripted
     roles: [author]
     data_path: in-process, nothing leaves
+    data_classes: []
 
   - id: scripted-reviewer
     family: scripted-r
     kind: scripted
     roles: [reviewer]
     data_path: in-process, nothing leaves
+    data_classes: []
+
+  # The only model here approved to see consumer data, and only as an explainer.
+  # Scripted, so nothing leaves the process. A live model needs its data path
+  # approved, in the register, before this row could name it.
+  - id: scripted-explainer
+    family: scripted-x
+    kind: scripted
+    roles: [explainer]
+    data_path: in-process, nothing leaves
+    data_classes: [consumer-personal, credit-decision]

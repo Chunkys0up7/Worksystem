@@ -112,7 +112,9 @@ class Gateway:
                                   float(caps.get("max_seconds", 120)), self.clock())
         return self._budget
 
-    def session(self, model_id: str, role: str) -> Session:
+    def session(self, model_id: str, role: str, data_classes: tuple[str, ...] = ()) -> Session:
+        """`data_classes` is what the caller will send. A model sees a class of
+        data only if its pin lists it: the per-model data-path register."""
         pin = (self.policy.models or {}).get(model_id)
         try:
             if pin is None:
@@ -120,6 +122,11 @@ class Gateway:
             if role not in pin["roles"]:
                 raise GatewayRefused(
                     "model-not-approved-for-role", f"{model_id} is not approved as {role}")
+            missing = [c for c in data_classes if c not in (pin.get("data_classes") or [])]
+            if missing:
+                raise GatewayRefused(
+                    "model-not-approved-for-data",
+                    f"{model_id} has no approved data path for {', '.join(missing)}")
             if model_id not in self.adapters:
                 raise GatewayRefused("no-adapter", f"no adapter is registered for {model_id}")
         except GatewayRefused as exc:

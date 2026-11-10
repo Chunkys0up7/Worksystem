@@ -92,10 +92,28 @@ class ScriptedReviewer:
         return {"text": self.text, "tool_calls": []}
 
 
+class ScriptedExplainer:
+    """Drafts an explanation from the result it is given. `invent` makes it
+    state a figure of its own, to show the guard that checks it."""
+
+    def __init__(self, *, invent: bool = False, omit_cards: bool = False) -> None:
+        self.invent, self.omit_cards = invent, omit_cards
+
+    def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> dict[str, Any]:
+        result = next(m["content"]["result"] for m in messages if m.get("role") == "user")
+        figure = "9999.99" if self.invent else result["qualifying_monthly"]
+        cards = "" if self.omit_cards else f" under {', '.join(result['cards_applied'])}"
+        text = (f"Your qualifying monthly income is {figure}. It is your base income of "
+                f"{result['base_monthly']} plus {result['variable_monthly']} of variable "
+                f"income that counts{cards}.")
+        return {"text": text, "tool_calls": []}
+
+
 def scripted_adapters(scenario_dir: Path) -> dict[str, Any]:
     base = scenario_dir / "scripted"
     return {
         "scripted-author-a": ScriptedAuthor("scripted-author-a", base / "a" / TARGET),
         "scripted-author-b": ScriptedAuthor("scripted-author-b", base / "b" / TARGET),
         "scripted-reviewer": ScriptedReviewer(),
+        "scripted-explainer": ScriptedExplainer(),
     }

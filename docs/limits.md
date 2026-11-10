@@ -147,6 +147,29 @@ manifest: the gate has to evaluate a stack of changes, not one.
 - **Degraded mode is drilled in tests, not in an outage.** The spool is a
   directory. Who may write to it during an outage is not controlled.
 
+## 7g. What the runtime does not show
+
+- **The engine is a hundred-odd lines, not a product.** It enforces the node
+  contract, the pin and the single transaction. It has no retries, no timeouts,
+  no parallel branches, no back-pressure. LangGraph, Temporal or an existing
+  workflow engine would sit behind the same contract; none has been tried.
+- **The only agent node explains.** It does not read documents, call tools or
+  choose a route. So the hard questions about agents (injection through a
+  document, a tool used wrongly, drift over a long case) are not exercised. The
+  adversarial twin passes because the check it attacks is deterministic.
+- **The explanation guard checks amounts and card names.** A draft that is
+  wrong or misleading in words, with the right numbers, passes it.
+- **The vault is a directory.** Encryption, access control and proof of erasure
+  are not built. Erasure removes the values; backups are not considered.
+- **Decision receipts hold references.** After erasure a decision cannot be
+  re-explained from its inputs. That is the retention ceiling doing its job,
+  but the floor has to be met first, and nothing here enforces the order.
+- **One case, one process.** Two engines stepping the same case at once are
+  serialised by the database write lock on SQLite and an advisory lock on
+  Postgres, and the second would fail on the step key. That is safe and
+  untuned.
+- **No shadow traffic, no canary, no fairness monitoring, no retirement path.**
+
 ## 8. The slice is small and synthetic
 
 One blueprint, three moments, four cards, one skill, one decision service of

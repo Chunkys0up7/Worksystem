@@ -27,6 +27,14 @@ record_classes:
     legal_hold_override: true
     fact_types: [change.proposed, executor.evidence, gateway.usage, review.advice]
 
+  - name: runtime-record
+    floor_days: 2555
+    ceiling_days: 2920
+    legal_hold_override: true
+    fact_types: [case.started, node.completed, case.routed, case.completed, case.halted,
+                 guard.tripped, case.migrated, migration.approved, decision.made,
+                 agent.output, review.resolved, eval.result]
+
 # Personal data never enters the ledger. It is recorded by reference: a key
 # ending in _ref that points into an erasable store. Any of these keys anywhere
 # in a payload rejects the write.
@@ -45,6 +53,11 @@ personal_data_keys:
   - income
   - income_amount
   - employer
+  - base_per_period
+  - variable_total_in_window
+  - variable_total_recent
+  - qualifying_monthly
+  - explanation
 
 # Completeness: for every entry of one type, these companions must exist for
 # the same subject. The reconciler reports gaps; it does not repair them.

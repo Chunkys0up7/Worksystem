@@ -70,6 +70,15 @@ paths:
     tier: C
     reason: held-out cases are a gate; weakening one weakens every Tier C release
 
+  - glob: "runtime/**"
+    tier: C
+    data_classes: [consumer-personal, credit-decision]
+    reason: the agent runtime; it moves real cases and calls the decision service
+
+  - glob: "runtime/synthetic/**"
+    tier: B
+    reason: synthetic test data; created, never masked from real data
+
   - glob: "harness/**"
     tier: B
     data_classes: [internal]

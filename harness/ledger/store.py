@@ -120,6 +120,46 @@ class SqliteStore:
             yield _from_row(row)
 
 
+    def begin(self) -> "_SqliteTx":
+        if not self.path.parent.exists():
+            raise sqlite3.OperationalError(f"ledger location missing: {self.path.parent}")
+        conn = sqlite3.connect(self.path, isolation_level=None)
+        conn.execute("BEGIN IMMEDIATE")  # one writer; the head cannot move under us
+        return _SqliteTx(conn)
+
+    def query(self, sql: str, params: tuple = ()) -> list[tuple]:
+        with self._connect() as conn:
+            return conn.execute(sql, params).fetchall()
+
+
+class _SqliteTx:
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self.conn = conn
+
+    def execute(self, sql: str, params: tuple = ()) -> None:
+        self.conn.execute(sql, params)
+
+    def head(self) -> tuple[int, str] | None:
+        row = self.conn.execute(
+            "SELECT seq, entry_hash FROM ledger ORDER BY seq DESC LIMIT 1").fetchone()
+        return (row[0], row[1]) if row else None
+
+    def append(self, entry: Entry) -> None:
+        marks = ",".join("?" for _ in COLUMNS)
+        self.conn.execute(
+            f"INSERT INTO ledger ({','.join(COLUMNS)}) VALUES ({marks})", _to_row(entry))
+
+    def commit(self) -> None:
+        self.conn.execute("COMMIT")
+        self.conn.close()
+
+    def rollback(self) -> None:
+        try:
+            self.conn.execute("ROLLBACK")
+        finally:
+            self.conn.close()
+
+
 class PostgresStore:
     def __init__(self, dsn: str, table: str = "ledger") -> None:
         self.dsn = dsn
@@ -189,6 +229,44 @@ class PostgresStore:
             ).fetchall()
         for row in rows:
             yield _from_row(tuple(row))
+
+
+    def begin(self) -> "_PostgresTx":
+        conn = self._connect()
+        conn.execute("SELECT pg_advisory_xact_lock(7243001)")  # one writer at a time
+        return _PostgresTx(conn, self.table)
+
+    def query(self, sql: str, params: tuple = ()) -> list[tuple]:
+        with self._connect() as conn:
+            return [tuple(r) for r in conn.execute(sql.replace("?", "%s"), params).fetchall()]
+
+
+class _PostgresTx:
+    def __init__(self, conn, table: str) -> None:
+        self.conn, self.table = conn, table
+
+    def execute(self, sql: str, params: tuple = ()) -> None:
+        self.conn.execute(sql.replace("?", "%s"), params)
+
+    def head(self) -> tuple[int, str] | None:
+        row = self.conn.execute(
+            f"SELECT seq, entry_hash FROM {self.table} ORDER BY seq DESC LIMIT 1").fetchone()
+        return (int(row[0]), row[1]) if row else None
+
+    def append(self, entry: Entry) -> None:
+        marks = ",".join("%s" for _ in COLUMNS)
+        self.conn.execute(
+            f"INSERT INTO {self.table} ({','.join(COLUMNS)}) VALUES ({marks})", _to_row(entry))
+
+    def commit(self) -> None:
+        self.conn.commit()
+        self.conn.close()
+
+    def rollback(self) -> None:
+        try:
+            self.conn.rollback()
+        finally:
+            self.conn.close()
 
 
 def open_store(location: str | Path):

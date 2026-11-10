@@ -107,11 +107,12 @@ def new_gateway(env: Env, adapters: dict[str, Any] | None = None, caps=None) -> 
 def deliver(env: Env, scenario: Scenario, executor, keydir: Path, *,
             with_canary: bool = False, gateway: Gateway | None = None,
             reviewer_model: str | None = None, launched_by: str | None = None,
-            tower: Tower | None = None) -> tuple[WorkOrder, DeliveryRun]:
+            tower: Tower | None = None, change_id: str | None = None,
+            workdir: Path | None = None) -> tuple[WorkOrder, DeliveryRun]:
     """Build the scenario's work order and run it through the harness."""
     order = build_work_order(
-        scenario.change, scenario.spec, executor=executor.identity, root=env.root,
-        policy=env.policy, knowledge=env.knowledge, workdir=env.workdir,
+        change_id or scenario.change, scenario.spec, executor=executor.identity, root=env.root,
+        policy=env.policy, knowledge=env.knowledge, workdir=workdir or env.workdir,
         with_canary=with_canary, gateway=gateway, reviewer_model=reviewer_model,
         launched_by=launched_by)
     run = run_work_order(order, executor, ledger=env.ledger, keydir=keydir,

@@ -24,6 +24,25 @@ import sys
 from pathlib import Path
 
 
+def strays(code_root: Path) -> list[str]:
+    """Modules that belong to the code under test and were loaded from elsewhere.
+
+    The checks import the governed code by name. If the path is wrong, Python
+    can quietly import a package of the same name from another place (the
+    harness's own repository has one). A check that ran against the wrong code
+    proves nothing, so this is a failure, not a warning.
+    """
+    tops = {p.name for p in code_root.iterdir() if p.is_dir()} - {"harness"}
+    out = []
+    for name, module in list(sys.modules.items()):
+        origin = getattr(module, "__file__", None)
+        if not origin or name.split(".")[0] not in tops:
+            continue
+        if code_root not in Path(origin).resolve().parents:
+            out.append(f"{name} was imported from {origin}, not from the code under test")
+    return sorted(out)
+
+
 def heldout(argv: list[str]) -> int:
     """--heldout ROOT NAME CODE_ROOT: run ROOT/heldout/NAME/run.py against CODE_ROOT."""
     root, name, code_root = Path(argv[0]).resolve(), argv[1], Path(argv[2]).resolve()
@@ -34,7 +53,7 @@ def heldout(argv: list[str]) -> int:
     sys.path.insert(0, str(code_root))
     spec.loader.exec_module(module)
     cases, failures = module.run({"root": str(code_root), "dir": str(directory)})
-    print(json.dumps({"cases": cases, "failures": failures}))
+    print(json.dumps({"cases": cases, "failures": list(failures) + strays(code_root)}))
     return 0
 
 
@@ -72,6 +91,10 @@ def main(argv: list[str]) -> int:
             entry.update(passed=False, detail=f"error: {type(exc).__name__}: {exc}")
         results.append(entry)
 
+    wrong = strays(code_root)
+    if wrong:
+        for entry in results:
+            entry.update(passed=False, detail=f"error: {wrong[0]}")
     print(json.dumps(results))
     return 0
 

@@ -47,7 +47,7 @@ Attack numbers refer to `python -m harness attacks`.
 | Personal data is recorded by reference only. | Partial | Key lint in `find_personal_data`; `_ref` keys allowed | Attack 9. It is a key lint: put a name in a field called `detail` and it passes. |
 | Retention is a window, with record class fixed at write time. | Partial | `policy/records-schedule.yaml`; every entry carries `retain_until` and `dispose_after` | Disposal is not built. Neither is legal hold. See limits. |
 | The store is a contract, not a product. | Proven | SQLite and Postgres pass the same contract tests | Run with `LEDGER_PG_DSN` set. |
-| Runtime ledger entry and checkpoint in one Postgres transaction. | Not built | | Stage 6. |
+| Runtime ledger entry and checkpoint in one database transaction. | Proven | `Ledger.transaction`, tested on SQLite and Postgres | Attack 60. |
 
 ## 4. Knowledge as skills, line of sight (ADR-025, ADR-011)
 
@@ -63,14 +63,14 @@ Attack numbers refer to `python -m harness attacks`.
 | The ID chain answers "where is this decision implemented, and is it passing" and "why does this code look like this". | Proven on the scenario | `harness/chain.py`, `test_chain_is_closed_through_change` | Decision, skill, spec, change, check and ledger links all resolve for PD-0002. PD-0001 predates specs and the chain says so. |
 | Missing links fail the build. | Proven | `python -m harness validate`, `test_broken_links_are_found` | Break any reference between moment, card, decision, skill, check or skill map. |
 | The blueprint marks regulated moments, each with obligations and data classes. | Proven | `knowledge/blueprint/`, validation | Attack 21. |
-| Procedure cards are checked. | Not built | Listed as pending in the skill manifest | Stage 6: runtime evals on the agent node. |
+| Procedure cards are checked. | Proven | By an eval against the runtime, named in the skill manifest | See section 8. |
 | Cards are refreshed from production traces. | Not built | | Stage 7. |
 
 ## 5. Decisions and separation of duties (ADR-030)
 
 | Claim | Status | Where | How to attack it |
 | --- | --- | --- | --- |
-| A regulated figure comes only from a deterministic decision service. | Partial | `services/decision_income/calc.py`: exact arithmetic, names the cards applied | Nothing yet stops an agent computing the figure itself. That is the node contract, stage 6. |
+| A regulated figure comes only from a deterministic decision service. | Proven for the graph contract | `services/decision_income/calc.py`, `runtime/engine.py` | Attacks 56, 57. See section 8. |
 | The author never judges its own work. | Partial | No identity in the executor role can write a tier, a check result, a hand-back verdict or a gate | Attack 33. Model-level separation (a different model reviews) needs a live model: SPEC-0001 task 9. |
 | The launcher cannot approve. | Proven | `harness/release.py` | Attack 50. |
 | Promotion happens only from git, through CI. | Not built here | `.github/workflows/ci.yml` runs the gates | Branch protection and the release manifest are stage 5. |
@@ -130,11 +130,33 @@ conformance suite. Every model is scripted and labelled. Run it with
 | Tier A merges automatically, with sampling. | Not built | | |
 | Canary, online evals and automatic rollback. | Not built | | |
 
-## 8. Not built yet
+## 8. The agent runtime (ADR-027, ADR-030; SPEC-0004)
+
+Every release these claims rest on went through the harness first: delivered,
+gated, approved by two people, sealed. Every model is scripted.
+
+| Claim | Status | Where | How to attack it |
+| --- | --- | --- | --- |
+| The checkpoint and the ledger entries for a step are one database transaction. | Proven, on SQLite and Postgres | `Ledger.transaction`, `runtime/engine.py`; `test_checkpoint_and_ledger_commit_together` | Attack 60. |
+| Checkpoints and ledger entries reconcile one to one. | Proven | `Engine.reconcile` | Insert a checkpoint row by hand. |
+| A checkpoint edited behind the engine is not trusted. | Proven | Each step's ledger entry carries a hash of the state it left | Attack 66. |
+| A regulated figure comes only from the decision service. | Proven for the graph contract | Only the calculate node may write the result; a node writing outside its contract halts the case | Attacks 56, 57. |
+| Anything an agent says about the figure is checked against the receipt. | Proven for amounts and card names | `runtime/income.py: guard`; a failed draft is replaced by a template and the trip recorded | Attack 58. A draft that is wrong in words, not numbers, passes. |
+| A case uses the versions pinned when it started; a new release reaches new cases only. | Proven | Releases stored by version; the pin is recorded in `case.started` and in each receipt | Attack 61. |
+| A case moves version only by an approved, recorded migration. | Proven | `Engine.migrate` needs a `migration.approved` from an approver | Attack 62. |
+| The pinned release is what runs. | Proven | The service is loaded from the release by path, in a fresh process, and checked against its sealed manifest first | Attacks 63, 64. Attack 64 succeeded during the build. |
+| Conflicting documents go to a person and are not calculated (PROC-0001). | Proven for a deterministic check | `runtime/income.py: conflict`, and calculate refuses again as a second line | Attack 59. |
+| A procedure card is checked, by an eval with adversarial twins. | Proven | `runtime/evals.py`; `eval.result` closes the PROC-0001 link in the chain | Break the conflict node: the eval fails (`test_the_eval_fails_when_the_procedure_is_broken`). |
+| A routed case is durable, and only a case reviewer resolves it. | Proven | A new engine instance resumes it | Attack 65. |
+| Personal data is by reference and can be erased without breaking the record. | Proven | `runtime/vault.py`; amounts appear in no ledger entry and no checkpoint | Attack 67. |
+| A model sees a class of data only if its pin approves it. | Proven | The gateway checks `data_classes` on the pin | Attack 68. |
+| An agent that reads documents resists an instruction inside one. | Not shown | The check that matters is deterministic and never reads the note | Needs a live agent and a red-team corpus. |
+| Shadow and canary exposure, fairness monitoring, agent retirement. | Not built | | |
+
+## 9. Not built yet
 
 | Claim | Stage |
 | --- | --- |
 | A live model behind the gateway; a live coding-agent product as the CLI executor. | 4, needs credentials |
-| Agent runtime: case-pinned skill versions, checkpoint and ledger in one transaction. | 6 |
 | Defect loop: reproduce first, permanent regression test and eval; return path from traces. | 7 |
 | Full attack pack across both programmes. | 8 |

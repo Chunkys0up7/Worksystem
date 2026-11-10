@@ -200,3 +200,56 @@ def test_any_single_field_edit_is_detected(policy, keydir, tmp_path_factory, cou
     conn.close()
 
     assert ledger.verify() != []
+
+
+# ------------------------------------------------------------- transactions
+
+def test_transaction_writes_entries_and_other_rows_together(ledger, store, keydir):
+    with ledger.transaction() as tx:
+        tx.execute("CREATE TABLE IF NOT EXISTS side_rows (k TEXT PRIMARY KEY, v TEXT)")
+    name = "side_rows"
+    with ledger.transaction() as tx:
+        tx.execute(f"INSERT INTO {name} (k, v) VALUES (?, ?)", ("a", "1"))
+        first = tx.append(tier_sub(keydir, "CHG-1"))
+        second = tx.append(tier_sub(keydir, "CHG-2"))
+    assert (first.seq, second.seq) == (1, 2) and second.prev_hash == first.entry_hash
+    assert ledger.query(f"SELECT k, v FROM {name}") == [("a", "1")]
+    assert ledger.verify() == []
+    assert ledger.append(tier_sub(keydir, "CHG-3")).seq == 3
+    with ledger.transaction() as tx:
+        tx.execute(f"DELETE FROM {name}")
+
+
+def test_transaction_rolls_back_everything_on_failure(ledger, keydir):
+    with ledger.transaction() as tx:
+        tx.execute("CREATE TABLE IF NOT EXISTS side_rows2 (k TEXT PRIMARY KEY, v TEXT)")
+    ledger.append(tier_sub(keydir, "CHG-1"))
+    with pytest.raises(RuntimeError):
+        with ledger.transaction() as tx:
+            tx.execute("INSERT INTO side_rows2 (k, v) VALUES (?, ?)", ("a", "1"))
+            tx.append(tier_sub(keydir, "CHG-2"))
+            raise RuntimeError("the process died here")
+    assert ledger.query("SELECT k FROM side_rows2") == []
+    assert [e.payload["subject"] for e in ledger.entries()] == ["CHG-1"]
+    assert ledger.verify() == []
+
+
+def test_transaction_rolls_back_the_other_rows_when_the_ledger_rejects(ledger, keydir):
+    with ledger.transaction() as tx:
+        tx.execute("CREATE TABLE IF NOT EXISTS side_rows3 (k TEXT PRIMARY KEY, v TEXT)")
+    bad = sign_submission(keydir, "agent-executor", "gate.result", {"subject": "CHG-1"})
+    with pytest.raises(LedgerRejected):
+        with ledger.transaction() as tx:
+            tx.execute("INSERT INTO side_rows3 (k, v) VALUES (?, ?)", ("a", "1"))
+            tx.append(bad)
+    assert ledger.query("SELECT k FROM side_rows3") == []
+    assert ledger.entries() == [] and ledger.verify() == []
+
+
+def test_transaction_checks_the_anchor(ledger, keydir):
+    ledger.append(tier_sub(keydir, "CHG-1"))
+    ledger.anchor.write(1, "f" * 64)
+    with pytest.raises(LedgerRejected) as caught:
+        with ledger.transaction() as tx:
+            tx.append(tier_sub(keydir, "CHG-2"))
+    assert caught.value.code == "chain-head-mismatch"
