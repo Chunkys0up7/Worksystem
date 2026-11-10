@@ -422,7 +422,9 @@ def test_chain_is_closed_through_change(env, scenario, keydir):
     assert any("no change with a gate result" in o for o in before["open"])
     run(env, scenario, keydir)
     data = chain.forward("PD-0002", env.knowledge, env.policy, env.ledger)
-    assert data["open"] == []
+    # Through the change the chain is closed. What is left is the procedure card's
+    # eval, which belongs to the runtime and has not run in this ledger.
+    assert data["open"] == ["EVL-income-calculation-001 has no result in this ledger"]
     assert data["specs"][0]["spec"] == "SPEC-0002"
     change = data["specs"][0]["changes"][0]
     assert (change["change"], change["outcome"], change["recorded"]) == (
@@ -480,5 +482,5 @@ def test_scenario_overlay_does_not_touch_the_repository(scenario, root, tmp_path
     before = snapshot(root)
     prepare(scenario, root, tmp_path / "repo")
     assert snapshot(root) == before
-    assert load_knowledge(root).skills["SKL-income-calculation"].version == "1.0.0"
+    assert load_knowledge(root).skills["SKL-income-calculation"].version == "1.0.1"
     assert "PD-0002" not in load_knowledge(root).decisions

@@ -34,6 +34,17 @@ def _latest_check(ledger: Ledger | None, check_id: str) -> dict[str, Any] | None
     }
 
 
+def _latest_eval(ledger: Ledger | None, eval_id: str) -> dict[str, Any] | None:
+    if ledger is None:
+        return None
+    found = ledger.find(fact_type="eval.result", ref=eval_id)
+    if not found:
+        return None
+    entry = found[-1]
+    return {"ledger": entry.id, "ts": entry.ts, "outcome": entry.payload["outcome"],
+            "cases": entry.payload["cases"], "twins": entry.payload.get("adversarial_twins", 0)}
+
+
 def forward(decision_id: str, knowledge: Knowledge, policy: Policy,
             ledger: Ledger | None) -> dict[str, Any]:
     decision = knowledge.decisions.get(decision_id)
@@ -93,6 +104,11 @@ def forward(decision_id: str, knowledge: Knowledge, policy: Policy,
                     }
                     for check in skill.checks
                 ],
+                "evals": [
+                    {"eval": item["id"], "covers": item["covers"],
+                     "latest": _latest_eval(ledger, item["id"])}
+                    for item in skill.evals
+                ],
                 "pending": skill.pending,
             }
         )
@@ -107,6 +123,9 @@ def forward(decision_id: str, knowledge: Knowledge, policy: Policy,
         for check in skill["checks"]:
             if not check["latest"]:
                 out["open"].append(f"{check['check']} has no result in this ledger")
+        for item in skill["evals"]:
+            if not item["latest"]:
+                out["open"].append(f"{item['eval']} has no result in this ledger")
     return out
 
 
@@ -167,6 +186,11 @@ def render_forward(data: dict[str, Any]) -> str:
             else:
                 status = "NO RESULT IN THE LEDGER"
             lines.append(f"    {check['check']} covers {', '.join(check['covers'])}: {status}")
+        for item in skill["evals"]:
+            latest = item["latest"]
+            status = (f"{latest['outcome'].upper()} in {latest['ledger']}: {latest['cases']} cases, "
+                      f"{latest['twins']} adversarial" if latest else "NO RESULT IN THE LEDGER")
+            lines.append(f"    {item['eval']} (eval) covers {', '.join(item['covers'])}: {status}")
         for pending in skill["pending"]:
             lines.append(
                 f"    open: {pending['card']} ({pending['reason']}; stage {pending['due_stage']})"

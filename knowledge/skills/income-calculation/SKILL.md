@@ -30,6 +30,7 @@ any code path that is not exact arithmetic.
 
 ## How this is checked
 
-Each rule above has a paired deterministic check in `checks/`. CI runs them
+Each rule above has a paired deterministic check in `checks/`. PROC-0001 is a
+procedure, so it is checked by an eval run against the runtime, not by a check. CI runs them
 under its own identity, whatever you report. The checks, not this text, decide
 whether a change merges.

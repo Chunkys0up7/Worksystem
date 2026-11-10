@@ -49,6 +49,10 @@ class Skill:
         return list(self.manifest.get("checks", []))
 
     @property
+    def evals(self) -> list[dict[str, Any]]:
+        return list(self.manifest.get("evals", []))
+
+    @property
     def pending(self) -> list[dict[str, Any]]:
         return list(self.manifest.get("pending", []))
 
@@ -233,6 +237,17 @@ def validate(knowledge: Knowledge, policy: Policy) -> list[str]:
                 if card not in skill.cards:
                     problems.append(f"{check_id}: covers {card}, which the skill does not list")
                 covered.add(card)
+
+        for item in skill.evals:
+            if ids.kind_of(item.get("id", "")) != "eval":
+                problems.append(f"{skill.id}: {item.get('id')!r} is not a valid eval id")
+            for card in item.get("covers", []):
+                if card not in skill.cards:
+                    problems.append(f"{item.get('id')}: covers {card}, which the skill does not list")
+                elif ids.card_type(card) in CHECKED_CARD_TYPES:
+                    continue  # an eval may add to a check; it never replaces one
+                else:
+                    covered.add(card)
 
         pending = {p["card"] for p in skill.pending if p.get("due_stage")}
         for card in skill.cards:

@@ -1,0 +1,8 @@
+id: ADR-030
+type: architecture-decision
+title: "Regulated decisions come only from deterministic decision services"
+statement: >
+  An agent node may draft, route and explain. It may not produce a regulated figure. The figure comes from a decision service, with a receipt, and anything an agent says about it is checked against that receipt.
+owner: architecture-sme
+implemented_in: runtime/engine.py, services/decision_income/
+status: adopted for this reference build

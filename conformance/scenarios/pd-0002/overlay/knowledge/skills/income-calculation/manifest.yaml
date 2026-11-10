@@ -37,9 +37,10 @@ checks:
     module: checks/check_income.py
     function: check_declining_variable_income_rule
 
-# Links that are known to be open, with where they close. An open link that is
-# not listed here fails validation.
-pending:
-  - card: PROC-0001
-    reason: procedure cards are checked by runtime evals on the agent node
-    due_stage: 6
+# A procedure card says how cases move, so it is checked by moving cases: an
+# eval run against the runtime, with an adversarial twin per conflicting case.
+evals:
+  - id: EVL-income-calculation-001
+    covers: [PROC-0001]
+    suite: runtime/evals.py
+

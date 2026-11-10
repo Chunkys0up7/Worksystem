@@ -1,0 +1,8 @@
+id: ADR-027
+type: architecture-decision
+title: "The agent spine is a paved road"
+statement: >
+  Every runtime agent gets the same things from the platform: a workload identity, durable case state, knowledge resolved by the versions pinned on the case at start, tools and models through gateways, ledger events and record classes. A case moves to a newer version only by a recorded migration.
+owner: architecture-sme
+implemented_in: runtime/
+status: adopted for this reference build

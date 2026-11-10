@@ -19,6 +19,7 @@ KINDS: dict[str, re.Pattern[str]] = {
     "spec": re.compile(r"^SPEC-\d{4}$"),
     "change": re.compile(r"^CHG-[A-Za-z0-9-]+$"),
     "check": re.compile(r"^CHK-[a-z0-9-]+-\d{3}$"),
+    "eval": re.compile(r"^EVL-[a-z0-9-]+-\d{3}$"),
     "ledger-entry": re.compile(r"^LED-\d+$"),
 }
 

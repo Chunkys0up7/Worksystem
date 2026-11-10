@@ -111,8 +111,12 @@ def test_lint_refuses_network_credentials_and_dynamic_code(copy, text, expect):
          "unknown decision PD-9999"),
         ("knowledge/skills/income-calculation/manifest.yaml", "covers: [RULE-0001]", "covers: [FACT-0001]",
          "RULE-0001 has no paired deterministic check"),
-        ("knowledge/skills/income-calculation/manifest.yaml", "  - card: PROC-0001", "  - card: PROC-9999",
+        ("knowledge/skills/income-calculation/manifest.yaml", "    covers: [PROC-0001]", "    covers: []",
          "PROC-0001 has no check and is not listed as pending"),
+        ("knowledge/skills/income-calculation/manifest.yaml", "    covers: [PROC-0001]", "    covers: [PROC-0009]",
+         "covers PROC-0009, which the skill does not list"),
+        ("knowledge/skills/income-calculation/manifest.yaml", "  - id: EVL-income-calculation-001", "  - id: eval-1",
+         "is not a valid eval id"),
         ("knowledge/skills/income-calculation/manifest.yaml", "implements: [PD-0001, OBL-0001]",
          "implements: [OBL-0001]", "PD-0001: no skill implements this decision"),
         ("policy/skill-map.yaml", "services/decision_income/**", "services/gone/**", "matches no file"),
@@ -265,7 +269,7 @@ def test_chain_forward_and_back(sqlite_ledger, keydir, policy, knowledge):
                keydir=keydir, policy=policy, knowledge=knowledge)
     after = chain.forward("PD-0001", knowledge, policy, sqlite_ledger)
     skill = after["skills"][0]
-    assert skill["skill"] == "SKL-income-calculation@1.0.0"
+    assert skill["skill"] == "SKL-income-calculation@1.0.1"
     assert all(c["latest"]["outcome"] == "pass" for c in skill["checks"])
     assert "RULE-0001" in after["cards"]
     assert "PASS in LED-" in chain.render_forward(after)
