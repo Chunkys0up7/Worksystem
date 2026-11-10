@@ -1,0 +1,538 @@
+<title>Worksystem console</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one working surface. A fixed header names the mode (live or recorded) and holds
+   five views. Each view puts its verdict first and the evidence under it. No outside request. */
+:root {
+  --bg: #f2f5f6; --surface: #ffffff; --sunk: #e8edef; --ink: #13212b; --muted: #556470;
+  --line: #d3dade; --accent: #0a6a82; --accent-ink: #ffffff; --accent-soft: #dcecf0;
+  --held: #1b7645; --held-soft: #dcefe3; --limit: #96560a; --limit-soft: #f6e8cf;
+  --broken: #b3261e; --broken-soft: #f8dedb; --idle: #8b98a2;
+  --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 40px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f161b; --surface: #17212a; --sunk: #1e2a34; --ink: #e5ecf0; --muted: #9babb6;
+  --line: #2d3b46; --accent: #56b9d1; --accent-ink: #06222a; --accent-soft: #173844;
+  --held: #62cc8f; --held-soft: #173a28; --limit: #e3aa52; --limit-soft: #40300f;
+  --broken: #f1837a; --broken-soft: #47201d; --idle: #6f7e89; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f161b; --surface: #17212a; --sunk: #1e2a34; --ink: #e5ecf0; --muted: #9babb6;
+  --line: #2d3b46; --accent: #56b9d1; --accent-ink: #06222a; --accent-soft: #173844;
+  --held: #62cc8f; --held-soft: #173a28; --limit: #e3aa52; --limit-soft: #40300f;
+  --broken: #f1837a; --broken-soft: #47201d; --idle: #6f7e89; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); margin: 0 }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 10; background: var(--surface) }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: var(--surface);
+  border-bottom: 1px solid var(--line) }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s4); padding-block: var(--s3) var(--s2) }
+.name { font-weight: 650; font-size: 17px; letter-spacing: -0.01em }
+.mode { font: 600 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 5px 8px; border-radius: 3px; background: var(--accent); color: var(--accent-ink) }
+.mode.rec { background: var(--limit-soft); color: var(--limit); border: 1px solid var(--limit) }
+.where { color: var(--muted); font: 12px var(--mono) }
+nav { display: flex; gap: var(--s1); overflow-x: auto; margin-bottom: -1px }
+nav a { padding: var(--s2) var(--s3); color: var(--muted); text-decoration: none; font-weight: 600;
+  border-bottom: 3px solid transparent; white-space: nowrap }
+nav a:hover { color: var(--ink) }
+nav a[aria-current="page"] { color: var(--accent); border-bottom-color: var(--accent) }
+.notice { background: var(--limit-soft); color: var(--ink); border-bottom: 1px solid var(--line); font-size: 13px }
+.notice .wrap { padding-block: var(--s2) }
+.notice b { color: var(--limit) }
+main { padding-block: var(--s5) var(--s6); display: flex; flex-direction: column; gap: var(--s5) }
+section.view { display: flex; flex-direction: column; gap: var(--s4) }
+h1 { font-size: 24px; line-height: 1.2; margin: 0; letter-spacing: -0.015em; text-wrap: balance }
+h2 { font-size: 16px; margin: 0 }
+p { margin: 0; max-width: 68ch }
+.lede { color: var(--muted) }
+.row { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); align-items: center }
+.grow { flex: 1 1 auto; min-width: 0 }
+code, .mono { font-family: var(--mono); font-size: 0.9em }
+code { background: var(--sunk); padding: 1px 5px; border-radius: 3px; overflow-wrap: anywhere }
+
+button, select, input, textarea { font: inherit; color: inherit }
+button { background: var(--surface); border: 1px solid var(--line); border-radius: 4px;
+  padding: 7px 14px; font-weight: 600; cursor: pointer }
+button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent) }
+button.go { background: var(--accent); border-color: var(--accent); color: var(--accent-ink) }
+button.go:hover:not(:disabled) { color: var(--accent-ink); filter: brightness(1.1) }
+button.small { padding: 3px 10px; font-size: 13px }
+button:disabled { opacity: 0.55; cursor: default }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+input[type="text"], select, textarea { background: var(--surface); border: 1px solid var(--line);
+  border-radius: 4px; padding: 7px 10px; min-width: 0; max-width: 100% }
+textarea { width: 100%; font-family: var(--mono); font-size: 13px; resize: vertical }
+
+.pill { display: inline-block; font: 700 11px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 4px 7px; border-radius: 3px; background: var(--sunk); color: var(--muted); white-space: nowrap }
+.pill.held, .pill.pass, .pill.done { background: var(--held-soft); color: var(--held) }
+.pill.limit, .pill.na, .pill.running { background: var(--limit-soft); color: var(--limit) }
+.pill.broken, .pill.fail { background: var(--broken-soft); color: var(--broken) }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px }
+.pad { padding: var(--s4) }
+.stack { display: flex; flex-direction: column; gap: var(--s3) }
+.muted { color: var(--muted) }
+.err { color: var(--broken); font-weight: 600 }
+
+/* rows that open: journey steps, attacks */
+.items { display: flex; flex-direction: column }
+.items details { border-top: 1px solid var(--line) }
+.items details:first-child { border-top: 0 }
+.items summary { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) auto; gap: var(--s3);
+  align-items: baseline; padding: var(--s3) var(--s4); cursor: pointer; list-style: none }
+.items summary::-webkit-details-marker { display: none }
+.items summary:hover { background: var(--sunk) }
+.num { font: 600 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; text-align: right }
+.stage { font: 700 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent) }
+.body { padding: 0 var(--s4) var(--s4) calc(2.4em + var(--s4) + var(--s3)); display: flex; flex-direction: column; gap: var(--s3) }
+.lines { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; font-size: 14px }
+.lines li { overflow-wrap: anywhere }
+.lines li.pre { font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; color: var(--muted) }
+.chips { display: flex; flex-wrap: wrap; gap: 5px }
+.chip { font: 12px var(--mono); background: var(--sunk); border-radius: 3px; padding: 2px 6px; overflow-wrap: anywhere }
+dl.kv { display: grid; grid-template-columns: 6.5em minmax(0, 1fr); gap: 6px var(--s3); margin: 0; font-size: 14px }
+dl.kv dt { color: var(--muted) } dl.kv dd { margin: 0; overflow-wrap: anywhere }
+@media (max-width: 560px) { .body { padding-left: var(--s4) } dl.kv { grid-template-columns: 1fr } }
+
+/* totals and the who-wrote chart */
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: var(--s3) }
+.fact b { display: block; font: 650 22px/1.2 var(--sans); font-variant-numeric: tabular-nums }
+.fact span { color: var(--muted); font-size: 13px }
+.bars { display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content; gap: 5px var(--s3);
+  align-items: center; font-size: 13px }
+.bars .track { height: 10px; background: var(--sunk); border-radius: 2px }
+.bars .fill { height: 100%; background: var(--accent); border-radius: 2px; min-width: 2px }
+.bars .n { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right }
+
+/* the attack strip: one cell per attack, in pack order */
+.strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(14px, 1fr)); gap: 3px }
+.strip a { height: 22px; border-radius: 2px; background: var(--idle); opacity: 0.45 }
+.strip a.held { background: var(--held); opacity: 1 } .strip a.limit { background: var(--limit); opacity: 1 }
+.strip a.broken { background: var(--broken); opacity: 1 } .strip a.running { background: var(--accent); opacity: 1 }
+.legend { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); font-size: 13px; color: var(--muted) }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px }
+
+/* the ledger */
+.verdict { border-left: 5px solid var(--held); }
+.verdict.bad { border-left-color: var(--broken) }
+.scroll { overflow-x: auto }
+table { border-collapse: collapse; width: 100%; font-size: 13px }
+th { text-align: left; font: 700 11px var(--mono); letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted); padding: var(--s2) var(--s3); border-bottom: 1px solid var(--line); white-space: nowrap }
+td { padding: 6px var(--s3); border-bottom: 1px solid var(--line); vertical-align: top }
+td.mono, td .mono { font-family: var(--mono); font-size: 12px }
+tr.entry { cursor: pointer } tr.entry:hover td { background: var(--sunk) }
+tr.bad td { background: var(--broken-soft) }
+tr.bad td:first-child { box-shadow: inset 4px 0 0 var(--broken) }
+tr.open td { background: var(--sunk) }
+pre.wide { white-space: pre; overflow-x: auto }
+pre { margin: 0; font: 12.5px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere }
+.tier { font: 700 34px/1 var(--sans); width: 1.6em; height: 1.6em; display: grid; place-items: center;
+  border-radius: 6px; background: var(--accent-soft); color: var(--accent); flex: none }
+.tier.C { background: var(--broken-soft); color: var(--broken) } .tier.B { background: var(--limit-soft); color: var(--limit) }
+.tier.A { background: var(--held-soft); color: var(--held) }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: var(--s4) }
+.two > * { min-width: 0 }
+.doc h3 { font-size: 15px; margin: 0 } .doc ul { margin: 0; padding-left: 1.2em } .doc li { max-width: 66ch }
+@media (prefers-reduced-motion: no-preference) { .pill.running { animation: pulse 1.2s ease-in-out infinite } }
+@keyframes pulse { 50% { opacity: 0.45 } }
+</style>
+
+<header class="top"><div class="wrap">
+  <div class="bar">
+    <span class="name">Worksystem console</span>
+    <span class="mode" id="mode">live</span>
+    <span class="where" id="where"></span>
+  </div>
+  <nav id="nav" aria-label="Views">
+    <a href="#journey">Journey</a><a href="#attacks">Attacks</a><a href="#ledger">Ledger</a>
+    <a href="#try">Try it</a><a href="#limits">Limits</a>
+  </nav>
+</div></header>
+<div class="notice"><div class="wrap" id="notice"><b>No live model.</b> Every model in this build is scripted: a deterministic program stands in for it. The controls around the model are real.</div></div>
+
+<main class="wrap">
+  <section class="view" id="view-journey"></section>
+  <section class="view" id="view-attacks" hidden></section>
+  <section class="view" id="view-ledger" hidden></section>
+  <section class="view" id="view-try" hidden></section>
+  <section class="view" id="view-limits" hidden></section>
+</main>
+
+<script id="recorded" type="application/json">null</script>
+<script>
+"use strict";
+// One page, two modes. LIVE: served by `python -m harness ui`, every button calls the real
+// mechanism on this machine. RECORDED: a real run is embedded above and buttons replay it.
+const REC = JSON.parse(document.getElementById("recorded").textContent);
+const LIVE = REC === null;
+const STAGES = [
+  ["discover", "A slice is chosen, with its outcome metric and what makes it regulated."],
+  ["decide", "A product decision becomes a rule card, a paired check and a signed skill."],
+  ["specify", "A spec is approved: which decision, which paths. It states no tier."],
+  ["build", "An executor gets a private worktree. The harness derives what changed."],
+  ["prove", "Fitness functions, held-out cases, a mutation score. A second model advises."],
+  ["release", "The launcher's approval is refused. Two other people release."],
+  ["run", "Cases run on the release. One is routed to a person."],
+  ["observe", "One case halts. Another completes with a wrong input accepted."],
+  ["reproduce", "A fix is attempted and blocked. The defect is reproduced first."],
+  ["fix", "A different executor builds the fix. Same gates, a second release."],
+  ["change", "The waiting case finishes on the old version. A new case gets the fix."],
+  ["account", "Personal data is erased. The ledger verifies and reconciles."],
+];
+const S = { overview: null, journey: { state: "idle", steps: [], totals: null, error: null },
+  attacks: {}, running: null, stop: false, filter: "all", ledger: null, ledgerError: null,
+  open: null, steps: {}, find: "", tier: null, chain: null, why: null, suite: null, busy: {} };
+
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === false || v == null) continue;
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "open" || k === "disabled" || k === "hidden") el[k] = !!v;
+    else el.setAttribute(k, v);
+  }
+  for (const kid of kids.flat(Infinity)) if (kid != null && kid !== false)
+    el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  return el;
+}
+const $ = (id) => document.getElementById(id);
+const pill = (kind, text) => h("span", { class: "pill " + kind }, text || kind);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function call(method, path, body) {
+  const res = await fetch(path, { method, headers: method === "POST"
+    ? { "Content-Type": "application/json", "X-Console": "1" } : {},
+    body: method === "POST" ? JSON.stringify(body || {}) : undefined });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+async function guard(key, fn) {
+  if (S.busy[key]) return;
+  S.busy[key] = true; S["err_" + key] = null; render();
+  try { await fn(); } catch (e) { S["err_" + key] = e.message; }
+  S.busy[key] = false; render();
+}
+const errorOf = (key) => S["err_" + key] ? h("p", { class: "err" }, S["err_" + key]) : null;
+
+// ------------------------------------------------------------------ journey
+async function runJourney() {
+  if (LIVE) {
+    await call("POST", "/api/journey");
+    for (;;) {
+      S.journey = await call("GET", "/api/journey"); S.steps = { [S.journey.steps.length - 1]: true }; render();
+      if (S.journey.state !== "running") break;
+      await sleep(700);
+    }
+    if (S.journey.state === "done") { S.ledger = null; S.chain = null; }
+  } else {
+    const all = REC.journey.steps;
+    S.journey = { state: "running", steps: [], totals: null, error: null };
+    for (const step of all) { await sleep(420); S.journey.steps.push(step); S.steps = { [S.journey.steps.length - 1]: true }; render(); }
+    S.journey = REC.journey;
+  }
+}
+function viewJourney() {
+  const j = S.journey, done = j.steps.length, running = j.state === "running";
+  const steps = STAGES.map(([stage, shows], i) => {
+    const step = j.steps[i];
+    const state = step ? "done" : running && i === done ? "running" : "idle";
+    return h("details", { open: step && S.steps[i], ontoggle: (e) => { S.steps[i] = e.target.open; } },
+      h("summary", {}, h("span", { class: "num" }, i + 1),
+        h("span", {}, h("span", { class: "stage" }, stage), h("br"), step ? step.title : shows),
+        pill(state, state === "idle" ? "not run" : state)),
+      step && h("div", { class: "body" },
+        h("ul", { class: "lines" }, step.lines.map((l) =>
+          h("li", { class: l.startsWith("  ") ? "pre" : "" }, l))),
+        step.entries.length ? h("div", {}, h("div", { class: "muted", style: "font-size:13px;margin-bottom:4px" },
+          "Written to the ledger in this step"),
+          h("div", { class: "chips" }, step.entries.map((e) => h("span", { class: "chip" }, e)))) : null));
+  });
+  const t = j.totals;
+  const roles = t ? Object.entries(t.roles).sort((a, b) => b[1] - a[1]) : [];
+  const top = roles.length ? roles[0][1] : 1;
+  return [
+    h("h1", {}, "The whole road, travelled once, on one ledger"),
+    h("p", { class: "lede" }, "Twelve steps from a discovery slice to a fix reaching new cases. Each step runs the real mechanism: a step that says a release was refused has just tried the release and been refused."),
+    h("div", { class: "row" },
+      h("button", { class: "go", id: "run-journey", disabled: running, onclick: () => guard("journey", runJourney) },
+        running ? `Running, step ${Math.min(done + 1, 12)} of 12` : LIVE ? (done ? "Run it again" : "Run the journey") : "Replay the recording"),
+      h("span", { class: "muted" }, LIVE ? "About 40 seconds. It writes to a throwaway directory."
+        : "Recorded from a real run. Nothing below was written by hand.")),
+    errorOf("journey"), j.error && h("p", { class: "err" }, j.error),
+    h("div", { class: "panel items" }, steps),
+    t && h("div", { class: "panel pad stack" },
+      h("h2", {}, "What the ledger holds at the end"),
+      h("div", { class: "facts" },
+        fact(t.entries, "ledger entries"), fact(t.fact_types, "fact types"), fact(t.identities, "identities wrote"),
+        fact(t.misplaced, "written outside a role"), fact(t.releases.length, "releases: " + t.releases.join(", ")),
+        fact(t.live_models, "live models used")),
+      h("div", { class: "row" }, pill(t.intact ? "held" : "broken", t.intact ? "chain and anchor agree" : "chain broken"),
+        pill(t.reconciled ? "held" : "broken", t.reconciled ? "every change has its gate result" : "not reconciled"),
+        h("span", { class: "muted" }, "Executors: " + t.executors.join(" then "))),
+      h("h2", {}, "Entries written, by role"),
+      h("div", { class: "bars" }, roles.map(([role, n]) => [h("span", {}, role),
+        h("div", { class: "track" }, h("div", { class: "fill", style: `width:${(100 * n / top).toFixed(1)}%` })),
+        h("span", { class: "n" }, n)])),
+      h("p", { class: "muted" }, h("a", { href: "#ledger" }, "Open the ledger"), " to read every entry, then edit one and see what verification says.")),
+  ];
+}
+const fact = (n, label) => h("div", { class: "fact" }, h("b", {}, n), h("span", {}, label));
+
+// ------------------------------------------------------------------ attacks
+async function runAttacks(numbers) {
+  S.stop = false;
+  for (const n of numbers) {
+    if (S.stop) break;
+    S.running = n; render();
+    try { S.attacks[n] = await call("POST", "/api/attack", { n }); }
+    catch (e) { S.attacks[n] = { n, verdict: "broken", observed: "the console could not run it: " + e.message }; }
+  }
+  S.running = null;
+}
+function viewAttacks() {
+  const list = S.overview.attacks, res = S.attacks;
+  const count = (v) => list.filter((a) => res[a.n] && res[a.n].verdict === v).length;
+  const ran = list.filter((a) => res[a.n]).length, all = S.running !== null;
+  const shown = list.filter((a) => S.filter === "all" || (res[a.n] && res[a.n].verdict === S.filter));
+  return [
+    h("h1", {}, `${list.length} scripted attempts to break the claims`),
+    h("p", { class: "lede" }, "Each attack runs in a throwaway copy of the repository with its own empty ledger. HELD means the build stopped it. LIMIT means it did not, on purpose, and the row says which control would."),
+    h("div", { class: "panel pad stack" },
+      h("div", { class: "facts" }, fact(count("held"), "held"), fact(count("limit"), "stated limits"),
+        fact(count("broken"), "broken"), fact(list.length - ran, "not run")),
+      h("div", { class: "strip", "aria-hidden": "true" }, list.map((a) => h("a", { href: "#attacks", title: `${a.n}. ${a.name}`,
+        class: S.running === a.n ? "running" : res[a.n] ? res[a.n].verdict : "",
+        onclick: (e) => { e.preventDefault(); S.filter = "all"; render(); const el = $("attack-" + a.n); el.open = true; el.scrollIntoView({ block: "center" }); } }))),
+      h("div", { class: "legend" }, ["held", "limit", "broken"].map((v) => h("span", {}, h("i", { style: `background:var(--${v})` }), v)),
+        h("span", {}, h("i", { style: "background:var(--idle);opacity:.45" }), "not run"))),
+    h("div", { class: "row" },
+      LIVE && h("button", { class: "go", id: "run-attacks", disabled: all && !S.busy.attacks, onclick: () => {
+        if (S.busy.attacks) { S.stop = true; return; }
+        guard("attacks", () => runAttacks(list.map((a) => a.n))); } },
+        S.busy.attacks ? `Stop (running ${S.running} of ${list.length})` : "Run all, about two minutes"),
+      h("label", { for: "attack-filter", class: "muted" }, "Show"),
+      h("select", { id: "attack-filter", onchange: (e) => { S.filter = e.target.value; render(); } },
+        ["all", "held", "limit", "broken"].map((v) => h("option", Object.assign({ value: v }, S.filter === v ? { selected: "" } : {}), v))),
+      !LIVE && h("span", { class: "muted" }, "Recorded results. Run them yourself from a clone.")),
+    errorOf("attacks"),
+    h("div", { class: "panel items" }, shown.map((a) => {
+      const r = res[a.n], state = S.running === a.n ? "running" : r ? r.verdict : "idle";
+      return h("details", { id: "attack-" + a.n, open: r && r.verdict !== "held" && S.filter !== "all" },
+        h("summary", {}, h("span", { class: "num" }, a.n), h("span", {}, a.name), pill(state, state === "idle" ? "not run" : state)),
+        h("div", { class: "body" }, h("dl", { class: "kv" },
+          h("dt", {}, "Claim"), h("dd", {}, a.claim), h("dt", {}, "Attempt"), h("dd", {}, a.attempt),
+          h("dt", {}, "Observed"), h("dd", {}, r ? r.observed : "Not run yet.")),
+          LIVE && h("div", {}, h("button", { class: "small", disabled: all, onclick: () => guard("one", () => runAttacks([a.n])) }, r ? "Run again" : "Run this attack"))));
+    })),
+  ];
+}
+
+// ------------------------------------------------------------------- ledger
+async function loadLedger() {
+  if (!LIVE) { S.ledger = S.ledger || REC.ledger; return; }
+  try { S.ledger = await call("GET", "/api/ledger"); S.ledgerError = null; }
+  catch (e) { S.ledger = null; S.ledgerError = e.message; }
+}
+async function tamper(seq) {
+  if (LIVE) S.ledger = await call("POST", "/api/ledger/tamper", { seq });
+  else S.ledger = Object.assign({}, REC.ledger, { tampered: REC.tamper.tampered, problems: REC.tamper.problems,
+    entries: REC.ledger.entries.map((e) => e.seq === REC.tamper.tampered.seq ? Object.assign({}, e, { payload: REC.tamper.payload }) : e) });
+  S.open = S.ledger.tampered.seq; S.find = "";
+  window.scrollTo(0, 0);
+}
+async function restore() { S.ledger = LIVE ? await call("POST", "/api/ledger/restore") : REC.ledger; }
+function viewLedger() {
+  const head = [h("h1", {}, "Every fact, signed by the one role allowed to state it"),
+    h("p", { class: "lede" }, "This is the ledger the journey wrote. Each entry is signed by its writer and carries the hash of the entry before it. Edit one the way a database owner could, then read what verification says.")];
+  const L = S.ledger;
+  if (!L) return head.concat(h("div", { class: "panel pad stack" },
+    h("p", {}, S.ledgerError || "Loading."), h("p", {}, h("a", { href: "#journey" }, "Go to the journey"), " and run it. Its entries appear here.")));
+  const bad = new Set(L.problems.map((p) => (p.match(/LED-(\d+)/) || [])[1]).filter(Boolean).map(Number));
+  const q = S.find.trim().toLowerCase();
+  const rows = L.entries.filter((e) => !q || (e.id + " " + e.fact_type + " " + e.actor + " " + e.role + " " + e.refs.join(" ")).toLowerCase().includes(q));
+  const recSeq = !LIVE && REC.tamper.tampered.seq;
+  const body = [];
+  for (const e of rows) {
+    const open = S.open === e.seq;
+    body.push(h("tr", { class: "entry" + (bad.has(e.seq) ? " bad" : "") + (open ? " open" : ""), tabindex: "0",
+      onclick: () => { S.open = open ? null : e.seq; render(); },
+      onkeydown: (ev) => { if (ev.key === "Enter") { S.open = open ? null : e.seq; render(); } } },
+      h("td", { class: "mono" }, e.id), h("td", { class: "mono" }, e.fact_type),
+      h("td", {}, e.actor, h("br"), h("span", { class: "muted" }, e.role)),
+      h("td", { class: "mono" }, e.refs.join(" ")), h("td", { class: "mono" }, e.prev_hash, " → ", e.entry_hash)));
+    if (open) body.push(h("tr", { class: "open" }, h("td", { colspan: "5" }, h("div", { class: "stack" },
+      h("pre", {}, JSON.stringify(e.payload, null, 2)),
+      h("div", { class: "row" }, h("span", { class: "muted" }, `${e.ts} · record class ${e.record_class}`),
+        !L.tampered && (LIVE || e.seq === recSeq) && h("button", { class: "small", id: "tamper", onclick: (ev) => { ev.stopPropagation(); guard("ledger", () => tamper(e.seq)); } },
+          LIVE ? "Edit this entry as a database owner" : "Replay the recorded edit of this entry"))))));
+  }
+  return head.concat([
+    h("div", { class: "panel pad stack verdict" + (L.problems.length ? " bad" : "") },
+      h("div", { class: "row" }, pill(L.problems.length ? "broken" : "held", L.problems.length ? "verification failed" : "verified"),
+        h("b", {}, L.problems.length ? `${L.problems.length} problem(s) found` : `${L.entries.length} entries. Chain and anchor agree.`)),
+      L.tampered && h("p", {}, `${L.tampered.id} was rewritten in the database, with the append-only trigger dropped. ${L.tampered.change}.`),
+      L.problems.length ? h("ul", { class: "lines" }, L.problems.map((p) => h("li", { class: "mono" }, p))) : null,
+      h("div", { class: "row" },
+        L.tampered ? h("button", { class: "go", id: "restore", onclick: () => guard("ledger", restore) }, "Put the original back")
+          : !LIVE ? h("button", { id: "replay-edit", onclick: () => guard("ledger", () => tamper(recSeq)) }, `Replay the recorded edit of LED-${recSeq}`)
+          : h("span", { class: "muted" }, "Open any entry to edit it.")),
+      errorOf("ledger")),
+    h("div", { class: "row" }, h("label", { for: "ledger-find" }, "Find"),
+      h("input", { type: "text", id: "ledger-find", class: "grow", value: S.find, placeholder: "fact type, actor, role or reference",
+        oninput: (e) => { S.find = e.target.value; render(); const el = $("ledger-find"); el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }),
+      h("span", { class: "muted" }, `${rows.length} of ${L.entries.length}`)),
+    h("div", { class: "panel scroll" }, h("table", {},
+      h("thead", {}, h("tr", {}, ["Entry", "Fact", "Written by", "Refers to", "Previous → this hash"].map((t) => h("th", {}, t)))),
+      h("tbody", {}, body))),
+  ]);
+}
+
+// ------------------------------------------------------------------- try it
+async function tierPaths(paths) {
+  if (LIVE) S.tier = await call("POST", "/api/tier", { paths });
+  else S.tier = REC.tier.find((t) => t.paths.join("\n") === paths.join("\n"));
+}
+async function showChain(decision) {
+  S.chain = LIVE ? await call("GET", "/api/chain?decision=" + encodeURIComponent(decision)) : REC.chain[decision];
+}
+async function showWhy(path) {
+  S.why = LIVE ? await call("GET", "/api/why?path=" + encodeURIComponent(path)) : REC.why.find((w) => w.path === path);
+}
+async function runSuite(executor) {
+  S.suite = LIVE ? await call("POST", "/api/conformance", { executor }) : REC.conformance[executor];
+}
+function viewTry() {
+  const o = S.overview, t = S.tier;
+  const decisions = LIVE ? (S.journey.state === "done" ? ["PD-0001", "PD-0002"] : o.decisions) : Object.keys(REC.chain);
+  const whyPaths = LIVE ? null : REC.why.map((w) => w.path);
+  const executors = LIVE ? o.executors : Object.keys(REC.conformance);
+  return [
+    h("h1", {}, "Ask it your own questions"),
+    h("p", { class: "lede" }, LIVE ? "Each box calls the same function the command line calls. Nothing here is recorded to a ledger."
+      : "In a recording the examples are fixed. From a clone, every box takes your own input."),
+    h("div", { class: "two" },
+      h("div", { class: "panel pad stack" }, h("h2", {}, "What tier is this change?"),
+        h("p", { class: "muted" }, "The tier comes from the path map and the rulebook. Nobody chooses it. Try to hide a regulated path, or name a path nobody mapped."),
+        h("div", { class: "chips" }, o.tier_examples.map((paths, i) => h("button", { class: "small", id: "tier-example-" + i,
+          onclick: () => { if (LIVE) $("tier-paths").value = paths.join("\n"); guard("tier", () => tierPaths(paths)); } }, paths.join(" + ")))),
+        LIVE && h("textarea", { id: "tier-paths", rows: "3", "aria-label": "Paths, one per line", placeholder: "one path per line" }),
+        LIVE && h("div", {}, h("button", { class: "go", id: "tier-go", onclick: () => guard("tier", () =>
+          tierPaths($("tier-paths").value.split("\n").map((p) => p.trim()).filter(Boolean))) }, "Tier these paths")),
+        errorOf("tier"),
+        t && (t.failed ? h("p", { class: "err" }, "Tier check failed: " + t.failed) : h("div", { class: "stack" },
+          h("div", { class: "row" }, h("div", { class: "tier " + t.tier }, t.tier),
+            h("div", { class: "grow" }, h("b", {}, "Tier " + t.tier), t.by_default ? " by default: unmapped paths" : "", h("br"),
+              h("span", { class: "muted mono" }, "rulebook " + t.rulebook_hash.slice(0, 12)))),
+          h("ul", { class: "lines" }, t.change_reasons.map((r) => h("li", {}, r)),
+            t.findings.map((f) => h("li", {}, pill("", f.tier), " ", h("code", {}, f.path), h("br"), h("span", { class: "muted" }, f.reasons.join("; ")))))))),
+      h("div", { class: "panel pad stack" }, h("h2", {}, "Does an executor meet the contract?"),
+        h("p", { class: "muted" }, "The conformance suite sends one work order through an executor and judges only what the harness can derive. Scripted models: the verdict covers the harness side."),
+        h("div", { class: "row" }, executors.map((x) => h("button", { class: "small", id: "suite-" + x, disabled: S.busy.suite,
+          onclick: () => guard("suite", () => runSuite(x)) }, LIVE ? `Run for ${x}` : `Show the recorded run for ${x}`)),
+          S.busy.suite && pill("running", "running, up to a minute")),
+        errorOf("suite"),
+        S.suite && h("div", { class: "stack" }, h("p", {}, h("b", {}, S.suite.executor + ": "), S.suite.verdict),
+          h("div", { class: "scroll" }, h("table", {}, h("tbody", {}, S.suite.clauses.map((c) => h("tr", {},
+            h("td", {}, pill(c.status === "n/a" ? "na" : c.status, c.status)), h("td", {}, h("b", {}, c.name), h("br"), h("span", { class: "muted" }, c.detail)))))))))),
+    h("div", { class: "two" },
+      h("div", { class: "panel pad stack" }, h("h2", {}, "Line of sight from a decision"),
+        h("p", { class: "muted" }, "From a product decision to its cards, the skill, each check and the ledger entry that holds its latest result."),
+        h("div", { class: "row" }, decisions.map((d) => h("button", { class: "small", id: "chain-" + d, onclick: () => guard("chain", () => showChain(d)) }, d))),
+        errorOf("chain"), S.chain && h("div", { class: "stack" }, h("span", { class: "muted" }, "Read against: " + S.chain.ledger), h("pre", { class: "wide" }, S.chain.text))),
+      h("div", { class: "panel pad stack" }, h("h2", {}, "Why is this path governed?"),
+        h("p", { class: "muted" }, "From a file back to its tier, the skill that governs it, the cards and the decisions."),
+        LIVE ? h("div", { class: "row" }, h("input", { type: "text", id: "why-path", class: "grow", "aria-label": "A path", value: "services/decision_income/calc.py" }),
+          h("button", { id: "why-go", onclick: () => guard("why", () => showWhy($("why-path").value.trim())) }, "Ask"))
+          : h("div", { class: "row" }, whyPaths.map((p) => h("button", { class: "small", onclick: () => guard("why", () => showWhy(p)) }, p))),
+        errorOf("why"), S.why && h("pre", { class: "wide" }, S.why.text))),
+  ];
+}
+
+// ------------------------------------------------------------------- limits
+function inline(text) {
+  const out = [];
+  text.split(/(`[^`]+`|\*\*[^*]+\*\*)/).forEach((part) => {
+    if (part.startsWith("`")) out.push(h("code", {}, part.slice(1, -1)));
+    else if (part.startsWith("**")) out.push(h("b", {}, part.slice(2, -2)));
+    else if (part) out.push(part);
+  });
+  return out;
+}
+function doc(body) {
+  return body.split(/\n\s*\n/).map((block) => {
+    if (/^- /.test(block)) return h("ul", {}, block.split(/\n(?=- )/).map((li) => h("li", {}, inline(li.slice(2).replace(/\n\s*/g, " ")))));
+    if (/^### /.test(block)) return h("h3", {}, block.slice(4));
+    return h("p", {}, inline(block.replace(/\n/g, " ")));
+  });
+}
+function viewLimits() {
+  const limits = S.overview.attacks.filter((a) => S.attacks[a.n] && S.attacks[a.n].verdict === "limit");
+  return [
+    h("h1", {}, "What this build does not prove"),
+    h("p", { class: "lede" }, "A reference build earns trust by being exact about its edges. This is the repository's own limits document, in full."),
+    h("div", { class: "panel pad stack" }, h("h2", {}, "Attacks the build does not stop"),
+      limits.length ? h("ul", { class: "lines" }, limits.map((a) => h("li", {}, pill("limit"), " ", h("b", {}, `${a.n}. ${a.name}. `), S.attacks[a.n].observed)))
+        : h("p", { class: "muted" }, h("a", { href: "#attacks" }, "Run the attack pack"), " and the rows it reports as LIMIT are listed here.")),
+    h("div", { class: "panel items" }, S.overview.limits.map((s, i) => h("details", { open: i === 0 },
+      h("summary", {}, h("span", { class: "num" }, s.title.match(/^[\w.]+/)[0].replace(/\.$/, "")), h("span", {}, h("b", {}, s.title.replace(/^[\w]+\.\s*/, ""))), h("span", {})),
+      h("div", { class: "body doc" }, doc(s.body))))),
+  ];
+}
+
+// --------------------------------------------------------------------- shell
+const VIEWS = { journey: viewJourney, attacks: viewAttacks, ledger: viewLedger, try: viewTry, limits: viewLimits };
+let current = null;
+function render() {
+  if (!S.overview) return;
+  const name = VIEWS[location.hash.slice(1)] ? location.hash.slice(1) : "journey";
+  const keep = {};
+  document.querySelectorAll("#view-" + name + " details[id]").forEach((d) => { keep[d.id] = d.open; });
+  const typed = name === "try" && $("tier-paths") ? $("tier-paths").value : null;
+  const whyTyped = name === "try" && $("why-path") ? $("why-path").value : null;
+  for (const key of Object.keys(VIEWS)) $("view-" + key).hidden = key !== name;
+  document.querySelectorAll("#nav a").forEach((a) =>
+    a.getAttribute("href") === "#" + name ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
+  $("view-" + name).replaceChildren(...VIEWS[name]().filter(Boolean));
+  for (const [id, open] of Object.entries(keep)) if ($(id) && current === name) $(id).open = open;
+  if (typed !== null && $("tier-paths")) $("tier-paths").value = typed;
+  if (whyTyped !== null && $("why-path")) $("why-path").value = whyTyped;
+  current = name;
+}
+async function route() {
+  if (location.hash === "#ledger" && S.overview) await loadLedger();
+  render();
+}
+async function start() {
+  try {
+    if (LIVE) {
+      S.overview = await call("GET", "/api/overview");
+      S.journey = await call("GET", "/api/journey");
+    } else {
+      S.overview = REC.overview; S.journey = REC.journey; S.ledger = REC.ledger;
+      for (const r of REC.attacks) S.attacks[r.n] = r;
+      S.tier = REC.tier[3]; S.chain = REC.chain[Object.keys(REC.chain).pop()]; S.suite = REC.conformance.loop;
+      $("mode").textContent = "recorded"; $("mode").classList.add("rec");
+    }
+  } catch (e) {
+    $("view-journey").replaceChildren(h("p", { class: "err" }, "The console could not reach its server: " + e.message));
+    return;
+  }
+  $("where").textContent = LIVE ? `commit ${S.overview.commit} · this machine only`
+    : `a real run at commit ${S.overview.commit}, ${REC.recorded_at}`;
+  if (!LIVE) $("notice").append(" This page is a recording: buttons replay what a real run returned. To trigger it yourself, clone the repository and run ",
+    h("code", {}, "python -m harness ui"), ".");
+  if (S.journey.steps.length) S.steps = { 5: true };
+  window.addEventListener("hashchange", route);
+  await route();
+}
+start();
+</script>

@@ -62,6 +62,11 @@ paths:
     data_classes: [internal]
     reason: executor adapters; no control lives in an adapter
 
+  - glob: "ui/**"
+    tier: B
+    data_classes: [internal]
+    reason: the console; presentation only, no control lives in it
+
   - glob: "conformance/**"
     tier: C
     reason: the conformance suite and its scenarios decide which executors may be used

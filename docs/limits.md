@@ -204,6 +204,24 @@ manifest: the gate has to evaluate a stack of changes, not one.
 - **Main is simulated.** Between steps, "main moves on" by laying a scenario
   over a copy. There is no merge, no branch and no pull request.
 
+## 7j. What the console does not show
+
+- **No login.** `python -m harness ui` listens on the loopback address and
+  refuses requests a web page in another tab could send, but any process on
+  the same machine can press its buttons (attack 76). It runs on the published
+  demo keys and writes only to throwaway directories, so nothing here needs
+  protecting. A console over a real ledger would sit behind the organisation's
+  authentication and hold an identity with no write role.
+- **The edit in the Ledger view is one kind of tampering.** It rewrites one
+  payload with database-owner access. The attack pack has the harder ones:
+  repairing the hash, removing an entry, rebuilding the chain and the anchor
+  (which is a stated limit, section 3).
+- **A recording is a recording.** The exported page replays what one run
+  returned. It proves nothing a reader cannot check by running the same
+  commands from a clone, and it is labelled so.
+- **It is a demonstration surface, not a product.** One page, one user, one
+  machine. No accessibility audit, no browser matrix.
+
 ## 8. The slice is small and synthetic
 
 One blueprint, three moments, four cards, one skill, one decision service of

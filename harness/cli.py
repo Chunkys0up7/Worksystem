@@ -318,6 +318,16 @@ def cmd_journey(ctx: Context, args) -> int:
     return 0 if ok else 1
 
 
+def cmd_ui(ctx: Context, args) -> int:
+    """The console is presentation: it lives outside the harness and is loaded here, at the edge."""
+    sys.path.insert(0, str(ctx.root))
+    from ui.server import export, serve
+
+    if args.export:
+        return export(ctx.root, ctx.keydir, Path(args.export))
+    return serve(ctx.root, ctx.keydir, args.port)
+
+
 def _tower_factory():
     """The confidence tower, when it is built (stage 5)."""
     try:
@@ -399,6 +409,12 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("journey", help="the whole road, discovery to change, on one ledger")
     p.add_argument("--json", action="store_true")
     p.set_defaults(fn=cmd_journey)
+
+    p = sub.add_parser("ui", help="the console: show and trigger all of it from a browser")
+    p.add_argument("--port", type=int, default=8765)
+    p.add_argument("--export", metavar="FILE",
+                   help="run everything once and write a self-contained recorded page")
+    p.set_defaults(fn=cmd_ui)
 
     sub.add_parser("demo", help="one pipeline, three changes, three tiers").set_defaults(fn=cmd_demo)
     sub.add_parser("attacks", help="run the attack pack").set_defaults(fn=cmd_attacks)

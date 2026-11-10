@@ -15,10 +15,10 @@ rules:
     forbid_float: true
 
   - id: FIT-003
-    title: The harness never imports an executor, an adapter, the suite, the attack pack or the runtime
+    title: The harness never imports an executor, an adapter, the suite, the attack pack, the runtime or the console
     paths: ["harness/**/*.py"]
     except: ["harness/cli.py"]   # the edge: adapters are looked up by name here and nowhere else
-    forbid_imports: [executors, conformance, attacks, runtime]
+    forbid_imports: [executors, conformance, attacks, runtime, ui]
 
   - id: FIT-004
     title: An executor adapter never touches the ledger, a gate, a signing key or the tier rules

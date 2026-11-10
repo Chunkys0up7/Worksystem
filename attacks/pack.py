@@ -1468,6 +1468,85 @@ def fix_under_running_case(sb: Sandbox) -> Result:
                   f"infinite amount, which r1 accepted, is now refused: {new['status']}")
 
 
+# ----------------------------------------------------------------- console
+
+def _console(sb: Sandbox):
+    """The console over the sandbox, on a free loopback port. Loaded here, not at the top:
+    the console lists this pack, so the pack cannot import it while it is being defined."""
+    import threading
+
+    from ui.server import Console, make_server
+
+    console = Console(sb.root, sb.keydir)
+    server = make_server(console)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return console, server
+
+
+def _ask(server, method: str, path: str, body: str = "{}", **headers) -> tuple[int, str]:
+    import http.client
+
+    port = server.server_address[1]
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=30)
+    try:
+        conn.request(method, path, body=body if method == "POST" else None,
+                     headers={"Host": f"127.0.0.1:{port}", **headers})
+        response = conn.getresponse()
+        return response.status, response.read().decode()
+    finally:
+        conn.close()
+
+
+@attack(
+    "a web page in another tab drives the console",
+    "The console answers this machine's own page and nothing else, and does only fixed things.",
+    "A page from another site posts to the console the way a browser would let it, then under "
+    "another host name, then asks for a file and for an operation that does not exist.",
+)
+def console_cross_site(sb: Sandbox) -> Result:
+    console, server = _console(sb)
+    try:
+        tried = [
+            _ask(server, "POST", "/api/journey", **{"Content-Type": "text/plain"}),
+            _ask(server, "POST", "/api/ledger/tamper", '{"seq": 1}', Origin="https://elsewhere.example"),
+            _ask(server, "GET", "/api/overview", Host="elsewhere.example"),
+            _ask(server, "POST", "/api/attack", '{"n": 1}', Host="elsewhere.example",
+                 **{"X-Console": "1"}),
+            _ask(server, "GET", "/../demo-keys/ci-gates.key"),
+            _ask(server, "POST", "/api/run", '{"command": "id"}', **{"X-Console": "1"}),
+        ]
+        untouched = console.journey()["state"] == "idle"
+    finally:
+        server.shutdown()
+        server.server_close()
+        console.close()
+    statuses = [status for status, _ in tried]
+    return Result(statuses == [403, 403, 403, 403, 404, 404] and untouched,
+                  f"answers {statuses}; nothing ran: {untouched}")
+
+
+@attack(
+    "anyone on this machine presses the console's buttons",
+    "LIMIT: the console has no login.",
+    "Another local process sends the console's own header and triggers an operation.",
+)
+def console_no_login(sb: Sandbox) -> Result:
+    console, server = _console(sb)
+    try:
+        status, body = _ask(server, "POST", "/api/tier", '{"paths": ["docs/a.md"]}',
+                            **{"X-Console": "1"})
+    finally:
+        server.shutdown()
+        server.server_close()
+        console.close()
+    if status != 200:
+        return Result(True, f"refused with {status}")
+    return Result(None, "it ran, with no credential asked for. The console is a demonstration "
+                        "surface on published demo keys and throwaway directories. Over a real "
+                        "ledger it needs the organisation's authentication in front of it and "
+                        "an identity with no write role")
+
+
 # ------------------------------------------------------------------ runner
 
 def run_all() -> list[tuple[Attack, Result]]:

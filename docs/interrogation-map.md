@@ -189,9 +189,28 @@ ledger. Every model is scripted.
 | Discovery is service-design-led: EventStorming, domain storytelling, bounded extraction from documents, an opportunity tree. | Not built | The blueprint and the slice were written by hand | |
 | Go or kill is driven by the outcome metric, measured. | Not built | The metric is recorded and never measured | |
 
-## 11. Not built yet
+## 11. The console (ADR-024; SPEC-0007)
+
+`python -m harness ui` serves one page on the loopback address. Every button
+calls a function the command line already calls. The console holds no control:
+delete `ui/` and every row above still holds. `--export` writes the same page
+with one real run embedded, labelled as a recording.
+
+| Claim | Status | Where | How to attack it |
+| --- | --- | --- | --- |
+| What the page shows is what the mechanism returned. | Proven | `ui/server.py`: each operation is one call; the tier answer equals the rulebook's, the journey's ledger is read through the ledger API | `test_tier_is_the_rulebook`, `test_journey_from_the_page`. Edit an entry from the Ledger view and read what verification says. |
+| The console does only fixed things: one page, a fixed set of operations, no command, module name or file path to write. | Proven | The routing tables in `make_handler`; input checks in `Console` | Attack 75. `test_only_fixed_operations`. |
+| A web page in another tab cannot drive it. | Proven | Loopback bind, the `Host` check, and a header a cross-site page cannot send without permission the console never gives | Attack 75. `test_another_origin_is_refused`. |
+| The page asks nobody else for anything. | Proven | No script, style, font or image from outside; the server also sends a content security policy | `test_the_page_asks_nobody_else`. |
+| The edit in the Ledger view touches only the journey's throwaway ledger, and can be undone. | Proven | `Console.tamper`, `Console.restore`; the append-only trigger is put back | `test_edit_an_entry_and_verification_says_so`. |
+| A recording says it is one, and holds what the run returned. | Proven | `Console.record`, `render_page` | `test_a_recording_is_labelled_and_whole`. |
+| The harness does not depend on the console. | Proven | FIT-003 forbids the import outside the command-line edge | `test_the_harness_never_imports_the_console`. |
+| Only the right people can press the buttons. | LIMIT | There is no login | Attack 76: any local process can. See `docs/limits.md`, section 7j. |
+| The page is accessible and has been tested with assistive technology. | Not shown | Keyboard focus is visible and the views are plain HTML; no audit was done | |
+
+## 12. Not built yet
 
 | Claim | Stage |
 | --- | --- |
 | A live model behind the gateway; a live coding-agent product as the CLI executor. | 4, needs credentials |
-| Every claim in both programmes has an attack. | 8, partly: 74 attacks; the claims marked Not built and Not shown have none |
+| Every claim in both programmes has an attack. | 8, partly: 76 attacks; the claims marked Not built and Not shown have none |

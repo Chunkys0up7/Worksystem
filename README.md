@@ -22,14 +22,29 @@ it are synthetic.
 
 ```
 pip install pyyaml cryptography pytest hypothesis
+python -m harness ui          # the console: show and trigger all of it from a browser
 python -m harness journey     # the whole road, discovery to change, on one ledger
-python -m harness attacks     # 74 scripted attempts to break the claims
-python -m pytest -q           # 325 tests, including property-based tests
+python -m harness attacks     # 76 scripted attempts to break the claims
+python -m pytest -q           # 360 tests, including property-based tests
 ```
 
 Python 3.11 or later. No services to start and no credentials: the ledger
 defaults to SQLite. Set `LEDGER_PG_DSN=postgresql://...` to run the ledger
 tests against Postgres as well.
+
+## The console
+
+`python -m harness ui` serves one page at `http://127.0.0.1:8765/`. From it you
+can travel the journey step by step, run any attack, read the ledger the
+journey wrote, edit an entry the way a database owner could and see what
+verification says, and tier any path. Every button calls the function the
+command line calls. The page asks no other server for anything.
+
+`python -m harness ui --export run.html` runs everything once and writes a
+self-contained page with the results in it, labelled as a recording.
+
+The console is presentation. It holds no control and it has no login: see
+`docs/limits.md`, section 7j.
 
 ## The journey
 
@@ -64,7 +79,7 @@ python -m harness spec                             # the spec for each stage
 ## Try to break it
 
 `python -m harness attacks` runs each attack in a throwaway copy and reports
-HELD, BROKEN or LIMIT. Four rows are LIMIT on purpose: attacks this build does
+HELD, BROKEN or LIMIT. Five rows are LIMIT on purpose: attacks this build does
 not stop, with the control that would. Add your own in `attacks/pack.py`.
 
 Some to try by hand:
@@ -96,7 +111,7 @@ python -m harness retro --repo /path/to/repo --since "3 months ago"
 | --- | --- |
 | `docs/interrogation-map.md` | Every claim, where it is proven, how to attack it. Start here. |
 | `docs/limits.md` | What this build does not prove. Read this second. |
-| `docs/stages.md` | The eight stages and what each left unbuilt. |
+| `docs/stages.md` | The nine stages and what each left unbuilt. |
 | `specs/` | One spec per stage. Work starts from a spec; every commit cites one. |
 | `policy/` | The governance plane as data: roles, tier rules, path map, skill map, deny list, model pins, tower thresholds, records schedule. |
 | `knowledge/` | Blueprint, slice, decisions, cards, and one signed skill with its paired checks. |
@@ -106,15 +121,17 @@ python -m harness retro --repo /path/to/repo --since "3 months ago"
 | `executors/` | Executor adapters and the scripted models. No control lives here. |
 | `conformance/` | The executor conformance suite, two replayable scenarios, the journey. |
 | `heldout/` | Cases no executor ever sees. |
+| `ui/` | The console: one page and a loopback server. Presentation only. |
 | `attacks/` | The attack pack. |
 | `tests/` | Contract, property and integration tests. |
 
 ## What is and is not here
 
-Built, across eight stages: an evidence layer, a tier rulebook, knowledge as
+Built, across nine stages: an evidence layer, a tier rulebook, knowledge as
 signed skills, an executor contract with three executors, a confidence tower,
-two-person release, an agent runtime with pinned versions, a defect loop, and
-one journey over all of it. 325 tests. 74 attacks: 70 held, 4 stated limits.
+two-person release, an agent runtime with pinned versions, a defect loop, one
+journey over all of it, and a console to show it. 360 tests. 76 attacks: 71
+held, 5 stated limits.
 
 Not here, and the build says so wherever it matters: a live model, an
 operating-system sandbox, key custody, an object-locked anchor, a real pipeline

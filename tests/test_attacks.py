@@ -13,12 +13,13 @@ STATED_LIMITS = {
     "weaken the check and re-sign the skill",
     "the executor reads the signing keys",
     "a command-line agent brings its own model",
+    "anyone on this machine presses the console's buttons",
 }
 
 
 def test_attack_pack():
     results = run_all()
-    assert len(results) >= 74
+    assert len(results) >= 76
     broken = [(a.name, r.observed) for a, r in results if r.held is False]
     assert broken == []
     limits = {a.name for a, r in results if r.held is None}

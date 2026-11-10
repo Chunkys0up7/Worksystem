@@ -12,6 +12,7 @@ python -m pytest -q          # tests (set LEDGER_PG_DSN to add Postgres)
 python -m harness attacks    # the attack pack
 python -m harness journey    # the whole road, discovery to change, on one ledger
 python -m harness demo       # one pipeline, three tiers
+python -m harness ui         # the console, on the loopback address (--export FILE for a recorded run)
 python -m harness conformance loop        # the executor conformance suite (also: recorded, cli-stub)
 python -m harness commits check           # every commit cites a spec and stays inside it
 python -m harness tier --paths <paths>    # what tier is this change
@@ -57,6 +58,9 @@ Every commit message carries a `Spec:` trailer (see `policy/commits.yaml`), and
 
 ## Traps already found
 
+- The console (`ui/`) is presentation. Never put a check, a gate or a signing
+  step in it, and never let the page compute a result: it shows what the
+  mechanism returned. It must make no outside request.
 - Checks must run in a fresh process with an empty bytecode cache
   (`harness/checks.py`). Do not import governed code into the harness process.
 - Skill content hashes are over file bytes. `.gitattributes` pins line endings.

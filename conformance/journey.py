@@ -19,7 +19,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import executors as registry
 from harness import chain, defect
@@ -60,7 +60,9 @@ class Journey:
                 "steps": [s.__dict__ for s in self.steps]}
 
 
-def run_journey(base_root: Path, keydir: Path, workdir: Path) -> Journey:
+def run_journey(base_root: Path, keydir: Path, workdir: Path,
+                on_step: Callable[[Step], None] | None = None) -> Journey:
+    """`on_step` is told about each step as it closes. It observes; it cannot change the road."""
     journey = Journey()
     scenario = load_scenario(base_root, "pd-0002")
     env = open_env(scenario, base_root, workdir)
@@ -80,6 +82,8 @@ def run_journey(base_root: Path, keydir: Path, workdir: Path) -> Journey:
         entries = ledger.entries()
         s.entries = [f"{e.id} {e.fact_type} by {e.actor}" for e in entries[seen[0]:]]
         seen[0] = len(entries)
+        if on_step is not None:
+            on_step(s)
 
     # 1 ---------------------------------------------------------------- discover
     s = step("discover", "A slice is chosen, with its outcome and what makes it regulated")
@@ -150,6 +154,8 @@ def run_journey(base_root: Path, keydir: Path, workdir: Path) -> Journey:
     s.lines += [line.strip() for line in run.steps if "review.advice" in line or "gate.result" in line]
     s.lines.append("the review is advice: the gate was already decided and reads nothing from it")
     s.entries = ["(recorded with the build step: tower.result, review.advice, gate.result)"]
+    if on_step is not None:
+        on_step(s)
 
     # 6 ----------------------------------------------------------------- release
     s = step("release", "Two people release it. The launcher cannot be one of them")
