@@ -57,6 +57,10 @@ jobs:
           python -m harness conformance recorded
           python -m harness conformance cli-stub
           python -m harness conformance loop --show-run
+          python -m harness conformance loop --scenario defect-0001
+
+      - name: The journey, discovery to change, on one ledger
+        run: python -m harness journey
 
       - name: One pipeline, three tiers
         run: python -m harness demo

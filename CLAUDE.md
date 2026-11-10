@@ -10,13 +10,15 @@ lifecycle. Its audience is peers who will try to break it. Read
 python -m harness validate   # every link resolves, every skill verifies
 python -m pytest -q          # tests (set LEDGER_PG_DSN to add Postgres)
 python -m harness attacks    # the attack pack
+python -m harness journey    # the whole road, discovery to change, on one ledger
 python -m harness demo       # one pipeline, three tiers
 python -m harness conformance loop        # the executor conformance suite (also: recorded, cli-stub)
 python -m harness commits check           # every commit cites a spec and stays inside it
 python -m harness tier --paths <paths>    # what tier is this change
 ```
 
-validate, pytest, attacks, demo and conformance must pass before any commit.
+validate, pytest, attacks, demo, conformance and journey must pass before any
+commit.
 Every commit message carries a `Spec:` trailer (see `policy/commits.yaml`), and
 `commits check` must pass after it.
 

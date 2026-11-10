@@ -64,7 +64,7 @@ Attack numbers refer to `python -m harness attacks`.
 | Missing links fail the build. | Proven | `python -m harness validate`, `test_broken_links_are_found` | Break any reference between moment, card, decision, skill, check or skill map. |
 | The blueprint marks regulated moments, each with obligations and data classes. | Proven | `knowledge/blueprint/`, validation | Attack 21. |
 | Procedure cards are checked. | Proven | By an eval against the runtime, named in the skill manifest | See section 8. |
-| Cards are refreshed from production traces. | Not built | | Stage 7. |
+| Cards are refreshed from production traces. | Not built | Only the owner sign-off rule exists | See section 9. |
 
 ## 5. Decisions and separation of duties (ADR-030)
 
@@ -153,10 +153,45 @@ gated, approved by two people, sealed. Every model is scripted.
 | An agent that reads documents resists an instruction inside one. | Not shown | The check that matters is deterministic and never reads the note | Needs a live agent and a red-team corpus. |
 | Shadow and canary exposure, fairness monitoring, agent retirement. | Not built | | |
 
-## 9. Not built yet
+## 9. The defect and change loop (ADR-015; SPEC-0005)
+
+The defect is real. The synthetic decision service failed on an amount that was
+not a number, and in one path accepted an infinite one and returned a figure.
+It was found by asking what the service does with inputs no check covered.
+
+| Claim | Status | Where | How to attack it |
+| --- | --- | --- | --- |
+| A defect cites the ledger entries that show it, and carries no personal data. | Proven | `harness/defect.py` | Attack 71. |
+| Reproduce before fixing: a spec that fixes a defect starts no work until the gates role has reproduced it against the released version. | Proven | `reproduction.result`; the check at the top of `run_work_order` | Attacks 69, 70. |
+| A defect leaves a permanent regression check and held-out cases. | Proven | The skill re-released with the check; held-out cases added | `test_regression_check_is_in_the_skill`. |
+| No out-of-band hotfix: the fix takes the usual road. | Proven | Tier C, six checks, the full tower, two people, a sealed release | Attack 72: the correct fix, copied over the stored release, is not run. |
+| A fix reaches new cases only. | Proven | Pins | Attack 74. |
+| Knowledge drafted from production traces needs its owner's sign-off. | Proven | Validation on a card's `provenance` | Attack 73. |
+| Defects are found. | Not shown | This one was found by a person asking a question | Trace clustering and anomaly detection are not built. |
+| Traces refresh the cards and the blueprint. | Not built | Only the sign-off rule exists | |
+| The defect is linked to the work-tracking system. | Not built | | |
+
+## 10. Discovery, and the whole road (ADR-011, ADR-019; SPEC-0006)
+
+`python -m harness journey` travels the road once: a slice is chosen, a
+decision becomes a rule and a check, a spec is approved, an executor builds the
+change, the tower proves it, two people release it, cases run on it, something
+goes wrong, the defect is reproduced and fixed by a different executor, and the
+fix reaches new cases only. Each step runs the real mechanism and lands on one
+ledger. Every model is scripted.
+
+| Claim | Status | Where | How to attack it |
+| --- | --- | --- | --- |
+| A slice records its outcome metric, obligations and data classes before go or kill, and its expected tier is derived, not chosen. | Proven for the record | `knowledge/slices/`, `slice_tier`, `slice.decided` by the product owner | Remove an obligation a regulated moment carries: validation fails (`test_slice_broken_links_fail_validation`). |
+| The two programmes share one evidence layer and meet at one interface. | Proven on the slice | One ledger holds the delivery facts and the runtime facts; the interface is the sealed release | Read the journey's ledger: 16 roles, no entry outside its writer's role. |
+| The road is one road: nothing is narrated. | Proven | Every stage of the journey writes ledger entries; a spec's first entry is the work order that cites it | `test_every_stage_lands_on_the_ledger`. |
+| The executor can change mid-journey. | Proven for the harness side | The change is built by the tool loop and the fix by the command-line executor | `test_two_executors_two_releases`. |
+| Discovery is service-design-led: EventStorming, domain storytelling, bounded extraction from documents, an opportunity tree. | Not built | The blueprint and the slice were written by hand | |
+| Go or kill is driven by the outcome metric, measured. | Not built | The metric is recorded and never measured | |
+
+## 11. Not built yet
 
 | Claim | Stage |
 | --- | --- |
 | A live model behind the gateway; a live coding-agent product as the CLI executor. | 4, needs credentials |
-| Defect loop: reproduce first, permanent regression test and eval; return path from traces. | 7 |
-| Full attack pack across both programmes. | 8 |
+| Every claim in both programmes has an attack. | 8, partly: 74 attacks; the claims marked Not built and Not shown have none |

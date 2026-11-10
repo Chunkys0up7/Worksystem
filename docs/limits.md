@@ -170,6 +170,40 @@ manifest: the gate has to evaluate a stack of changes, not one.
   untuned.
 - **No shadow traffic, no canary, no fairness monitoring, no retirement path.**
 
+## 7h. What the defect loop does not show
+
+- **Finding defects.** The defect here was found by a person asking what the
+  service does with inputs no check covered. Nothing in this build clusters
+  traces, watches for anomalies or proposes a defect.
+- **A defect that does not reproduce.** It is recorded as not reproduced and
+  work is blocked. What happens next (more evidence, close, escalate) is a
+  process this build does not define.
+- **The worse half of this defect went unnoticed in production.** A case with
+  an infinite amount completed and produced a figure. Nothing halted. Only the
+  crash was visible. A loop that starts from halted cases misses silent wrong
+  answers; outcome monitoring is what finds those, and it is not built.
+- **The return path is one rule.** A card drafted from traces needs its owner's
+  sign-off. Drafting such a card, evaluating it against injected text, and
+  refreshing the blueprint are not built.
+- **No link to a work-tracking system.**
+
+## 7i. What the journey does not show
+
+- **Discovery is a file.** The blueprint, the slice and its outcome metric were
+  written by hand for this build. The method in the plan (EventStorming, domain
+  storytelling, bounded extraction from documents, an opportunity tree, a
+  blueprint kept current from production) is not built. What is built is the
+  record a slice must leave and the checks on it.
+- **The outcome metric is recorded and never measured.** The journey ends
+  without knowing whether the slice achieved what it was for. That measurement
+  is what makes discovery value-driven, and it is the part missing.
+- **The journey is a script of real steps, in a fixed order, on one machine in
+  about forty seconds.** Real delivery has waiting, queues, disagreement and
+  rework. None of the time that the plan aims to remove is present here to be
+  removed, so the journey shows that the road exists, not how long it takes.
+- **Main is simulated.** Between steps, "main moves on" by laying a scenario
+  over a copy. There is no merge, no branch and no pull request.
+
 ## 8. The slice is small and synthetic
 
 One blueprint, three moments, four cards, one skill, one decision service of

@@ -302,6 +302,22 @@ def cmd_conformance(ctx: Context, args) -> int:
     return 1 if run.count("fail") else 0
 
 
+def cmd_journey(ctx: Context, args) -> int:
+    import tempfile
+
+    sys.path.insert(0, str(ctx.root))
+    from conformance.journey import render, run_journey
+
+    with tempfile.TemporaryDirectory(prefix="journey-") as tmp:
+        journey = run_journey(ctx.root, ctx.keydir, Path(tmp))
+        if args.json:
+            print(json.dumps(journey.as_dict(), indent=2))
+        else:
+            print(render(journey))
+        ok = journey.totals["intact"] and journey.totals["reconciled"] and not journey.totals["misplaced"]
+    return 0 if ok else 1
+
+
 def _tower_factory():
     """The confidence tower, when it is built (stage 5)."""
     try:
@@ -379,6 +395,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--second-model", help="second executor/model for model portability")
     p.add_argument("--json", action="store_true")
     p.set_defaults(fn=cmd_conformance)
+
+    p = sub.add_parser("journey", help="the whole road, discovery to change, on one ledger")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(fn=cmd_journey)
 
     sub.add_parser("demo", help="one pipeline, three changes, three tiers").set_defaults(fn=cmd_demo)
     sub.add_parser("attacks", help="run the attack pack").set_defaults(fn=cmd_attacks)

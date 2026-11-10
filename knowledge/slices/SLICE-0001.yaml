@@ -1,0 +1,19 @@
+# A slice: the smallest piece of the service worth delivering, decided before
+# anything is specified. It records the outcome it is for, and what makes it
+# regulated, so that tier, obligations and data classes are known at the point
+# of go or kill, not discovered during the build. SYNTHETIC.
+
+id: SLICE-0001
+title: Qualifying income for applicants with variable pay
+blueprint: BP-income-verification
+moments: [MOM-income-calculated, MOM-conflict-review]
+opportunity: >
+  Applicants with overtime, bonus or commission wait longest for an income
+  figure, and their figures are the ones most often reworked.
+outcome_metric: share of variable-pay applications with income verified without rework
+decisions: [PD-0001]
+obligations: [OBL-0001]
+data_classes: [consumer-personal, credit-decision]
+owner: owner-pat
+decision: go
+decided: 2026-11-10

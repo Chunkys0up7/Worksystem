@@ -1,7 +1,10 @@
-.PHONY: install demo attacks test validate conformance all
+.PHONY: install journey demo attacks test validate conformance all
 
 install:
 	pip install pyyaml cryptography pytest hypothesis
+
+journey:
+	python -m harness journey
 
 demo:
 	python -m harness demo
@@ -18,4 +21,4 @@ test:
 conformance:
 	python -m harness conformance loop --show-run
 
-all: validate test attacks conformance demo
+all: validate test attacks conformance demo journey

@@ -1,0 +1,8 @@
+id: ADR-011
+type: architecture-decision
+title: "Discovery is service-design-led and slice by slice"
+statement: >
+  A service blueprint is the organising ontology. Cards hang off its moments. Work is chosen as slices, each with an outcome metric, and the blueprint marks regulated moments so a slice records its tier, obligations and data classes before go or kill.
+owner: architecture-sme
+implemented_in: knowledge/blueprint/, knowledge/slices/
+status: adopted for this reference build

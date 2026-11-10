@@ -1,0 +1,8 @@
+id: ADR-019
+type: architecture-decision
+title: "Two linked programmes on one governance plane and one evidence layer"
+statement: >
+  A delivery harness governs all code. An agent runtime is a product the harness builds. They share the governance plane above and the evidence layer below, and meet at one interface: released, versioned units one way; decision events and the return path the other.
+owner: architecture-sme
+implemented_in: harness/, runtime/, harness/release.py
+status: adopted for this reference build
