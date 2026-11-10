@@ -82,6 +82,7 @@ python -m harness retro --repo /path/to/repo --since "3 months ago"
 | `docs/interrogation-map.md` | Every claim, where it is proven, how to attack it. Start here. |
 | `docs/limits.md` | What this build does not prove. Read this second. |
 | `docs/stages.md` | What is built, what is next, in what order. |
+| `specs/` | The spec for the next stage. Work starts from a spec. |
 | `policy/` | The governance plane as data: identities, tier rules, path map, skill map, records schedule. |
 | `knowledge/` | Blueprint, decisions, cards, and one signed skill with its paired checks. |
 | `services/decision_income/` | A deterministic decision service. No model in the path. |

@@ -17,6 +17,26 @@ paths:
     data_classes: [none]
     reason: documentation, no runtime effect
 
+  - glob: "specs/**"
+    tier: B
+    reason: specs are the contract between people and agents
+
+  - glob: "CLAUDE.md"
+    tier: C
+    reason: instructions every coding agent loads; it shapes every change
+
+  - glob: ".gitattributes"
+    tier: C
+    reason: pins the line endings that skill content hashes depend on
+
+  - glob: ".gitignore"
+    tier: B
+    reason: repository hygiene
+
+  - glob: "services/__init__.py"
+    tier: B
+    reason: package marker, no logic
+
   - glob: "Makefile"
     tier: B
     reason: developer entry points
