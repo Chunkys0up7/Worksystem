@@ -1,0 +1,8 @@
+id: ADR-028
+type: architecture-decision
+title: People own the intent spec; agents may draft the execution spec
+statement: >
+  An intent spec states the outcome, the acceptance criteria as tests and the decisions it implements. An execution spec states the plan, the contracts touched and the tasks. Work starts from an approved spec.
+owner: architecture-sme
+implemented_in: specs/
+status: adopted for this reference build

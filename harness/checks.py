@@ -57,8 +57,22 @@ def skills_for_paths(paths: list[str], policy: Policy) -> list[str]:
     return out
 
 
-def run_skill_checks(skill: Skill, knowledge: Knowledge, policy: Policy) -> list[CheckResult]:
+def governing_skills(paths: list[str], policy: Policy) -> list[str]:
+    """Skills whose governed code these paths touch (not the skill's own files)."""
+    out = []
+    for entry in policy.skill_map:
+        if any(glob_to_regex(g).match(p) for g in entry.get("governs", []) for p in paths):
+            out.append(entry["id"])
+    return out
+
+
+def run_skill_checks(
+    skill: Skill, knowledge: Knowledge, policy: Policy, code_root: Path | None = None
+) -> list[CheckResult]:
     """Verify the skill, then run its paired checks in a fresh process.
+
+    The skill and cards come from `knowledge.root`, which is trusted. The
+    governed code comes from `code_root`, which may be an executor's worktree.
 
     Raises SkillInvalid if the skill is unreleased or altered. If the runner
     fails for any reason, every check is reported as failed: a check that
@@ -66,9 +80,10 @@ def run_skill_checks(skill: Skill, knowledge: Knowledge, policy: Policy) -> list
     """
     verify(skill, policy)
     root = knowledge.root
+    code_root = code_root or root
     harness_home = str(Path(__file__).resolve().parent.parent)
     env = dict(os.environ)
-    env["PYTHONPATH"] = os.pathsep.join([str(root), harness_home])
+    env["PYTHONPATH"] = harness_home
     try:
         # Checks run against source, never against cached bytecode. A stale
         # .pyc beside an edited file (same size, same second) would otherwise
@@ -77,7 +92,8 @@ def run_skill_checks(skill: Skill, knowledge: Knowledge, policy: Policy) -> list
         with tempfile.TemporaryDirectory(prefix="check-pycache-") as cache:
             env["PYTHONPYCACHEPREFIX"] = cache
             proc = subprocess.run(
-                [sys.executable, "-m", "harness.check_runner", str(root), skill.id],
+                [sys.executable, "-m", "harness.check_runner",
+                 str(root), skill.id, str(code_root)],
                 capture_output=True, text=True, timeout=RUNNER_TIMEOUT_SECONDS,
                 cwd=harness_home, env=env,
             )
@@ -105,6 +121,7 @@ def record_results(
     root: Path,
     release: dict[str, str],
     change_id: str | None = None,
+    extra_refs: tuple[str, ...] = (),
 ) -> list[GateOutcome]:
     code_hash = governed_code_hash(root, policy, skill.id)
     outcomes = []
@@ -122,6 +139,7 @@ def record_results(
         if change_id:
             payload["change"] = change_id
             refs.append(change_id)
+        refs.extend(extra_refs)
         submission = sign_submission(keydir, CI_GATES, "check.result", payload, refs)
         outcomes.append(record_or_block(ledger, submission, result.passed))
     return outcomes

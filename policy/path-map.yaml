@@ -57,6 +57,15 @@ paths:
     tier: B
     reason: the attack pack is part of the control
 
+  - glob: "executors/**"
+    tier: B
+    data_classes: [internal]
+    reason: executor adapters; no control lives in an adapter
+
+  - glob: "conformance/**"
+    tier: C
+    reason: the conformance suite and its scenarios decide which executors may be used
+
   - glob: "harness/**"
     tier: B
     data_classes: [internal]

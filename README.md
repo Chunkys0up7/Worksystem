@@ -16,9 +16,10 @@ it are synthetic.
 
 ```
 pip install pyyaml cryptography pytest hypothesis
-python -m harness demo       # one pipeline, three changes, three tiers
-python -m harness attacks    # 21 scripted attempts to break the claims
-python -m pytest -q          # 118 tests, including property-based tests
+python -m harness demo                             # one pipeline, three changes, three tiers
+python -m harness conformance recorded --show-run  # a work order through the executor contract
+python -m harness attacks                          # 36 scripted attempts to break the claims
+python -m pytest -q                                # 168 tests, including property-based tests
 ```
 
 Python 3.11 or later. No services to start: the ledger defaults to SQLite.
@@ -44,10 +45,22 @@ python -m harness chain PD-0001                           # decision -> skill ->
 python -m harness why services/decision_income/calc.py    # code -> skill -> cards -> decisions
 ```
 
+`python -m harness conformance recorded --show-run` goes one step further. An
+SME has added a rule and its paired check, so the check is red. An executor is
+handed a work order: a private copy of the repository, the paths its spec
+allows, and the released skill. The harness then trusts nothing the executor
+says. It derives what changed, rejects anything out of scope, re-runs the
+checks from the released skill, records where the executor's claim differs, and
+closes the chain from decision to spec to change to evidence.
+
+The executor in that run is **recorded**: it replays a stored patch and no
+model runs. It is judged on 11 of 16 contract clauses and the output says which
+five need a live model. The contract is in `specs/SPEC-0001-executor-contract.md`.
+
 ## Try to break it
 
 `python -m harness attacks` runs each attack in a throwaway copy and reports
-HELD, BROKEN or LIMIT. Two rows are LIMIT on purpose: attacks this build does
+HELD, BROKEN or LIMIT. Three rows are LIMIT on purpose: attacks this build does
 not stop, with the control that would. Add your own in `attacks/pack.py`.
 
 Some to try by hand:
@@ -86,15 +99,20 @@ python -m harness retro --repo /path/to/repo --since "3 months ago"
 | `policy/` | The governance plane as data: identities, tier rules, path map, skill map, records schedule. |
 | `knowledge/` | Blueprint, decisions, cards, and one signed skill with its paired checks. |
 | `services/decision_income/` | A deterministic decision service. No model in the path. |
-| `harness/` | The delivery harness: ledger, tier rulebook, gates, checks, ID chain. |
+| `harness/` | The delivery harness: ledger, tier rulebook, gates, checks, work orders, hand-back validation, ID chain. |
+| `executors/` | Executor adapters. So far one: recorded. No control lives here. |
+| `conformance/` | The executor conformance suite and a replayable scenario. |
 | `attacks/` | The attack pack. |
 | `tests/` | Contract, property and integration tests. |
 
 ## Status
 
 Stages 1 to 3 of 8 are built: the evidence spine, the tier rulebook and the
-knowledge slice. There is no model call in the repository yet. The executor
-contract with two conforming executors is stage 4. See `docs/stages.md`.
+knowledge slice. Stage 4, the executor contract, is half built: everything
+that needs no model (specs, roles, work orders, hand-back validation, the
+recorded executor, the conformance suite). **No model call has run in this
+repository.** The model gateway, two live executors and the swap drill are
+next. See `docs/stages.md`.
 
 `demo-keys/` holds private signing keys, committed deliberately so the build
 runs from a clone. They protect nothing. See `demo-keys/README.md`.

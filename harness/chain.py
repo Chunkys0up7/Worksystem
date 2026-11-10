@@ -39,9 +39,30 @@ def forward(decision_id: str, knowledge: Knowledge, policy: Policy,
     decision = knowledge.decisions.get(decision_id)
     if decision is None:
         raise KeyError(f"{decision_id} is not in the decision register")
+    specs = []
+    for spec in knowledge.specs.values():
+        if decision_id not in spec.cites:
+            continue
+        changes = []
+        if ledger is not None:
+            for entry in ledger.find(fact_type="gate.result", ref=spec.id):
+                executor = entry.payload.get("executor") or {}
+                changes.append({
+                    "change": entry.payload["subject"],
+                    "outcome": entry.payload["outcome"],
+                    "tier": entry.payload.get("tier"),
+                    "ledger": entry.id,
+                    "executor": executor.get("id", ""),
+                    "recorded": bool(entry.payload.get("recorded")),
+                })
+        specs.append({"spec": spec.id, "status": spec.status, "title": spec.title,
+                      "changes": changes})
+
     out: dict[str, Any] = {
         "decision": decision_id,
         "title": decision.get("title", ""),
+        "specs": specs,
+        "open": [],
         "moments": sorted(
             m for m, v in knowledge.moments.items() if decision_id in v.get("obligations", [])
         ),
@@ -73,12 +94,19 @@ def forward(decision_id: str, knowledge: Knowledge, policy: Policy,
                     for check in skill.checks
                 ],
                 "pending": skill.pending,
-                "open_links": [
-                    "spec citing this decision (stage 4)",
-                    "change trailers with spec ID and skill versions loaded (stage 4)",
-                ],
             }
         )
+    if not out["skills"] and not specs:
+        out["open"].append("nothing implements this decision")
+    if not specs:
+        out["open"].append("no spec cites this decision")
+    for spec in specs:
+        if not spec["changes"]:
+            out["open"].append(f"{spec['spec']} has no change with a gate result in this ledger")
+    for skill in out["skills"]:
+        for check in skill["checks"]:
+            if not check["latest"]:
+                out["open"].append(f"{check['check']} has no result in this ledger")
     return out
 
 
@@ -118,8 +146,15 @@ def render_forward(data: dict[str, Any]) -> str:
     if data["moments"]:
         lines.append(f"  moments: {', '.join(data['moments'])}")
     lines.append(f"  cards:   {', '.join(data['cards']) or 'none'}")
-    if not data["skills"]:
-        lines.append("  NO SKILL IMPLEMENTS THIS DECISION")
+    for spec in data["specs"]:
+        lines.append(f"  spec {spec['spec']} ({spec['status']})  {spec['title']}")
+        for change in spec["changes"]:
+            who = f" by {change['executor']}" if change["executor"] else ""
+            label = " (RECORDED)" if change["recorded"] else ""
+            tier = f"Tier {change['tier']}, " if change["tier"] else ""
+            lines.append(
+                f"    change {change['change']}{who}{label}: {tier}"
+                f"{change['outcome']} in {change['ledger']}")
     for skill in data["skills"]:
         lines.append(f"  skill {skill['skill']}")
         lines.append(f"    {skill['state']}")
@@ -136,8 +171,8 @@ def render_forward(data: dict[str, Any]) -> str:
             lines.append(
                 f"    open: {pending['card']} ({pending['reason']}; stage {pending['due_stage']})"
             )
-        for link in skill["open_links"]:
-            lines.append(f"    open: {link}")
+    for item in data["open"]:
+        lines.append(f"  open: {item}")
     return "\n".join(lines)
 
 

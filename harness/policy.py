@@ -28,11 +28,16 @@ def repo_root() -> Path:
 
 
 @dataclass(frozen=True)
+class Role:
+    name: str
+    may_write: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class Identity:
     name: str
     role: str
     public_key: str
-    may_write: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -46,6 +51,7 @@ class RecordClass:
 @dataclass(frozen=True)
 class Policy:
     root: Path
+    roles: dict[str, Role]
     identities: dict[str, Identity]
     record_classes: dict[str, RecordClass]
     personal_data_keys: frozenset[str]
@@ -53,12 +59,23 @@ class Policy:
     tier_rules: dict[str, Any]
     path_map: tuple[dict[str, Any], ...]
     skill_map: tuple[dict[str, Any], ...]
+    deny_read: tuple[str, ...] = ()
+    deny_write: tuple[str, ...] = ()
+    enforce_commits_after: str | None = None
 
-    def writer_of(self, fact_type: str) -> str | None:
-        for ident in self.identities.values():
-            if fact_type in ident.may_write:
-                return ident.name
+    def writer_role_of(self, fact_type: str) -> str | None:
+        """The one role that may write this fact type."""
+        for role in self.roles.values():
+            if fact_type in role.may_write:
+                return role.name
         return None
+
+    def may_write(self, identity_name: str, fact_type: str) -> bool:
+        ident = self.identities.get(identity_name)
+        return ident is not None and self.writer_role_of(fact_type) == ident.role
+
+    def identities_in_role(self, role: str) -> list[str]:
+        return sorted(i.name for i in self.identities.values() if i.role == role)
 
     def record_class_of(self, fact_type: str) -> RecordClass | None:
         for rc in self.record_classes.values():
@@ -88,18 +105,28 @@ def load_policy(root: Path | None = None) -> Policy:
     root = root or repo_root()
 
     keys = _read(root, "identity-keys.yaml").get("public_keys", {})
+    identity_doc = _read(root, "identities.yaml")
+
+    roles: dict[str, Role] = {}
+    for row in identity_doc.get("roles", []):
+        if row["name"] in roles:
+            raise PolicyError(f"role {row['name']} is defined twice")
+        roles[row["name"]] = Role(row["name"], tuple(row.get("may_write", [])))
+
     identities: dict[str, Identity] = {}
-    for row in _read(root, "identities.yaml").get("identities", []):
-        name = row["name"]
+    for row in identity_doc.get("identities", []):
+        name, role = row["name"], row.get("role")
+        if not isinstance(role, str):
+            raise PolicyError(f"identity {name} must hold exactly one role")
+        if role not in roles:
+            raise PolicyError(f"identity {name} holds unknown role {role}")
+        if name in identities:
+            raise PolicyError(f"identity {name} is defined twice")
         if name not in keys:
             raise PolicyError(f"identity {name} has no registered public key")
-        identities[name] = Identity(
-            name=name,
-            role=row.get("role", ""),
-            public_key=keys[name],
-            may_write=tuple(row.get("may_write", [])),
-        )
-    if len(set(keys.values())) != len(keys):
+        identities[name] = Identity(name=name, role=role, public_key=keys[name])
+    used = [keys[name] for name in identities]
+    if len(set(used)) != len(used):
         raise PolicyError("two identities share a signing key")
 
     schedule = _read(root, "records-schedule.yaml")
@@ -126,17 +153,17 @@ def load_policy(root: Path | None = None) -> Policy:
                 )
             seen[fact_type] = rc.name
     for fact_type in seen:
-        writers = [i.name for i in identities.values() if fact_type in i.may_write]
+        writers = [r.name for r in roles.values() if fact_type in r.may_write]
         if len(writers) != 1:
             raise PolicyError(
                 f"fact type {fact_type} must have exactly one authoritative "
-                f"writer, found {writers or 'none'}"
+                f"role, found {writers or 'none'}"
             )
-    for ident in identities.values():
-        for fact_type in ident.may_write:
+    for role in roles.values():
+        for fact_type in role.may_write:
             if fact_type not in seen:
                 raise PolicyError(
-                    f"identity {ident.name} may write {fact_type}, which has "
+                    f"role {role.name} may write {fact_type}, which has "
                     "no record class"
                 )
 
@@ -147,8 +174,12 @@ def load_policy(root: Path | None = None) -> Policy:
         if rule.get("tier") not in ("A", "B", "C"):
             raise PolicyError(f"path-map rule {rule.get('glob')}: bad tier")
 
+    deny = _read(root, "deny.yaml")
+    commits = _read(root, "commits.yaml")
+
     return Policy(
         root=root,
+        roles=roles,
         identities=identities,
         record_classes=record_classes,
         personal_data_keys=frozenset(
@@ -158,4 +189,7 @@ def load_policy(root: Path | None = None) -> Policy:
         tier_rules=tier_rules,
         path_map=path_map,
         skill_map=skill_map,
+        deny_read=tuple(deny.get("read", [])),
+        deny_write=tuple(deny.get("write", [])),
+        enforce_commits_after=str(commits["enforce_after"]) if commits.get("enforce_after") else None,
     )

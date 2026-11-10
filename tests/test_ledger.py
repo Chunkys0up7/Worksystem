@@ -150,9 +150,10 @@ def test_gate_records_a_failure_and_still_blocks(ledger, keydir):
 
 def test_reconcile_reports_missing_companions(ledger, keydir):
     ledger.append(sign_submission(keydir, "agent-executor", "change.proposed", {"subject": "CHG-1"}))
-    assert ledger.reconcile() == ["CHG-1: has change.proposed but no tier.assigned"]
+    assert ledger.reconcile() == ["CHG-1: has change.proposed but no gate.result"]
     ledger.append(tier_sub(keydir, "CHG-1"))
-    assert ledger.reconcile() == ["CHG-1: has tier.assigned but no gate.result"]
+    assert ledger.reconcile() == ["CHG-1: has change.proposed but no gate.result",
+                                  "CHG-1: has tier.assigned but no gate.result"]
     ledger.append(sign_submission(keydir, "ci-gates", "gate.result", {"subject": "CHG-1"}))
     assert ledger.reconcile() == []
 

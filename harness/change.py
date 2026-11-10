@@ -64,7 +64,15 @@ def run_change(
     try:
         decision = classify(paths, policy, obligations)
     except TierCheckFailed as exc:
-        run.steps.append(f"BLOCK: tier check failed: {exc}")
+        # Every proposed change ends in a gate result, including a blocked one,
+        # so reconciliation can tell "blocked" from "lost".
+        why = f"tier check failed: {exc}"
+        recorded = record_or_block(ledger, sign_submission(
+            keydir, CI_GATES, "gate.result",
+            {"subject": change_id, "outcome": "blocked", "why": why}, [change_id]), False)
+        run.steps.append(
+            f"{recorded.entry.id} gate.result blocked: {why}" if recorded.entry
+            else f"BLOCK: {why}; and the gate result could not be recorded")
         return run
     try:
         entry = ledger.append(

@@ -1,0 +1,8 @@
+id: ADR-024
+type: architecture-decision
+title: Method before tools
+statement: >
+  The method is a set of joined-up systems defined by the contracts between them. No tool, model or vendor is load-bearing. Every capability on a control path has two conforming implementations, or a documented manual fallback, before it carries Tier C work.
+owner: architecture-sme
+implemented_in: the ledger store contract (two backends); the executor contract (stage 4)
+status: adopted for this reference build

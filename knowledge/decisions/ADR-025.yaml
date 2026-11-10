@@ -1,0 +1,8 @@
+id: ADR-025
+type: architecture-decision
+title: Knowledge reaches agents as SME-owned skills with paired checks
+statement: >
+  Decisions, obligations and domain rules reach every agent as versioned skills in the repository. Every rule has a paired deterministic check. Loading the skill map and reporting the versions loaded is a clause of the executor contract.
+owner: architecture-sme
+implemented_in: knowledge/skills/, harness/knowledge/, harness/checks.py
+status: adopted for this reference build

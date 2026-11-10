@@ -238,6 +238,58 @@ def cmd_demo(ctx: Context, args) -> int:
     return 0
 
 
+def cmd_spec(ctx: Context, args) -> int:
+    for spec in ctx.knowledge.specs.values():
+        print(f"{spec.id}  {spec.status:<9} {spec.title}")
+        print(f"    cites: {', '.join(spec.cites)}")
+        print(f"    may touch: {', '.join(spec.allowed_paths)}")
+    return 0
+
+
+def cmd_commits(ctx: Context, args) -> int:
+    from .trailers import check_commits
+
+    results = check_commits(ctx.root, ctx.knowledge, ctx.policy)
+    bad = [(sha, problems) for sha, problems in results if problems]
+    for sha, problems in results:
+        print(f"{sha}  {'ok' if not problems else 'FAIL'}")
+        for problem in problems:
+            print(f"    {problem}")
+    print(f"{len(results) - len(bad)} of {len(results)} commit(s) cite a spec and stay inside it")
+    return 1 if bad else 0
+
+
+def cmd_conformance(ctx: Context, args) -> int:
+    import tempfile
+
+    sys.path.insert(0, str(ctx.root))
+    import executors
+    from conformance.scenario import load_scenario
+    from conformance.suite import render, run_suite, to_json
+
+    try:
+        scenario = load_scenario(ctx.root, args.scenario)
+        executors.load(args.executor, scenario.dir)
+    except KeyError as exc:
+        print(exc.args[0])
+        return 2
+    with tempfile.TemporaryDirectory(prefix="conformance-") as tmp:
+        run = run_suite(lambda directory: executors.load(args.executor, directory),
+                        scenario, ctx.root, ctx.keydir, Path(tmp))
+        print(to_json(run) if args.json else render(run))
+        if args.show_run and run.delivery:
+            print("\nthe run:")
+            for step in run.delivery.steps:
+                print(f"  {step}")
+            print("\nline of sight:")
+            from . import chain as chain_mod
+            from .knowledge import load_knowledge
+            from .policy import load_policy
+            print(chain_mod.render_forward(chain_mod.forward(
+                scenario.decision, load_knowledge(run.root), load_policy(run.root), run.ledger)))
+    return 1 if run.count("fail") else 0
+
+
 def cmd_attacks(ctx: Context, args) -> int:
     sys.path.insert(0, str(ctx.root))
     from attacks.pack import main as attack_main
@@ -291,6 +343,19 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("ledger", help="show, verify or reconcile the ledger")
     p.add_argument("action", choices=["show", "verify", "reconcile"])
     p.set_defaults(fn=cmd_ledger)
+
+    sub.add_parser("spec", help="list the specs and what each may touch").set_defaults(fn=cmd_spec)
+
+    p = sub.add_parser("commits", help="check that commits cite a spec and stay inside it")
+    p.add_argument("action", choices=["check"])
+    p.set_defaults(fn=cmd_commits)
+
+    p = sub.add_parser("conformance", help="run the executor conformance suite")
+    p.add_argument("executor")
+    p.add_argument("--scenario", default="pd-0002")
+    p.add_argument("--show-run", action="store_true", help="also print the run and the ID chain")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(fn=cmd_conformance)
 
     sub.add_parser("demo", help="one pipeline, three changes, three tiers").set_defaults(fn=cmd_demo)
     sub.add_parser("attacks", help="run the attack pack").set_defaults(fn=cmd_attacks)

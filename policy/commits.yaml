@@ -1,0 +1,16 @@
+# Commit rules, checked by `python -m harness commits check` and by CI.
+#
+# Every commit after the baseline cites a spec that exists, and touches only
+# paths that spec allows. A commit that touches skill-governed code must also
+# say which change it is, which executor made it and which skill versions were
+# loaded. Trailer format:
+#
+#   Spec: SPEC-0002
+#   Change: CHG-pd-0002
+#   Executor: recorded@1
+#   Skills-Loaded: SKL-income-calculation@1.1.0#a1b2c3d4e5f6
+#
+# Commits at or before the baseline predate specs and are not checked.
+
+version: 0
+enforce_after: "9051306b22a262cd8848066b18847ce4d05b159c"

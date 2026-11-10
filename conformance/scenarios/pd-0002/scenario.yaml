@@ -1,0 +1,18 @@
+# A replayable scenario: the state of the repository after the SME's change and
+# before the executor's. Synthetic.
+#
+#   overlay/      the SME change, made by people before any agent runs:
+#                 PD-0002, RULE-0002, skill 1.1.0 with a new paired check,
+#                 and the approved SPEC-0002. Laid over a copy of the repository.
+#   recordings/   stored hand-backs for the recorded executor.
+#
+# In the overlaid state the new check is red: the rule exists and the code does
+# not implement it yet. The executor's job is to turn it green without touching
+# the skill.
+
+id: pd-0002
+title: Falling variable income uses the recent 12 months
+spec: SPEC-0002
+change: CHG-pd-0002
+decision: PD-0002
+red_check: CHK-income-calculation-005

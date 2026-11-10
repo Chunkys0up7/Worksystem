@@ -1,0 +1,23 @@
+# The deny list. Enforced by the harness around the executor, never by the
+# executor. It applies to every work order, whatever its spec allows.
+
+version: 0
+
+# Never copied into a worktree, so there is nothing there to read.
+read:
+  - "demo-keys/**"
+  - ".ledger/**"
+  - ".git/**"
+
+# Never writable by an executor. A hand-back that changes any of these is
+# rejected, even when the spec's allowed paths would include it.
+write:
+  - "policy/**"
+  - "knowledge/**"
+  - "specs/**"
+  - "harness/**"
+  - "conformance/**"
+  - "attacks/**"
+  - "demo-keys/**"
+  - ".github/**"
+  - "CLAUDE.md"

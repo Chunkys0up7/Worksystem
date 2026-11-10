@@ -1,0 +1,16 @@
+id: RULE-0002
+type: rule
+moment: MOM-income-calculated
+title: Falling variable income uses the most recent 12 months
+statement: >
+  When the recent 12-month total of variable income is supplied and is lower
+  than the total of the 12 months before it, eligible variable income per month
+  is the recent total divided by 12. When it is equal or higher, or not
+  supplied, RULE-0001 applies unchanged. RULE-0001's history requirement always
+  applies first.
+data:
+  recent_window_months: 12
+implements: [PD-0002, OBL-0001]
+owner: income-policy-sme
+version: 1
+source: synthetic

@@ -1,7 +1,33 @@
+---
+id: SPEC-0001
+title: The executor is a contract, and two executors conform
+status: approved
+cites: [ADR-002, ADR-024, ADR-025, ADR-028, OBL-0001]
+allowed_paths:
+  - "harness/**"
+  - "policy/**"
+  - "knowledge/decisions/**"
+  - "specs/**"
+  - "conformance/**"
+  - "executors/**"
+  - "attacks/**"
+  - "tests/**"
+  - "docs/**"
+  - "tools/**"
+  - "demo-keys/**"
+  - ".github/workflows/**"
+  - "README.md"
+  - "CLAUDE.md"
+  - "Makefile"
+  - "pyproject.toml"
+---
+
 # SPEC-0001: The executor is a contract, and two executors conform
 
-Stage 4 of the reference build. Status: draft for approval. Tier: C (touches
-`policy/`, `harness/ledger/` and the pipeline).
+Stage 4 of the reference build. Approved by the owner on 2026-11-10, with the
+proposals for Q1 to Q4 below accepted. This spec may not touch `services/`.
+Its tier is whatever the rulebook says of each change made under it; most are
+Tier C because they touch `policy/` and `harness/ledger/`.
 
 This spec follows the method it describes: an intent spec that people own,
 then an execution spec an agent may redraft. Acceptance criteria are tests.
@@ -171,3 +197,40 @@ A real change on the slice, small enough to finish in minutes:
 - The canary proves delivery of skill text, not that the model followed it.
 - Model-backed conformance is recorded, not re-run on every commit.
 - Two executors and two models passing one small work order says the contract is implementable. It says nothing about quality on hard work, which is what evals are for.
+
+## Progress
+
+As of 2026-11-10. Tasks 1 to 6 are built, in this order: 1, 2, 3, 4, 6, 5
+(the scenario had to exist before the suite could run against it).
+
+| Task | State | Notes |
+| --- | --- | --- |
+| 1 Decision register, unknown IDs fail | Done | ADR-002, 024, 025, 028 added. PD-0002 lives in the scenario overlay, not on main. |
+| 2 Spec loader, chain shows specs | Done | Front matter: id, status, cites, allowed paths. A spec states no tier: the rulebook derives it from each change. |
+| 3 Roles | Done | One role per fact type, one role and one key per identity. |
+| 4 Work order, hand-back validator, trailers | Done | A5, A6, A7. `python -m harness commits check` runs in CI on this repository. |
+| 5 Recorded executor, conformance suite | Done | A1, A2, A13. 11 of 16 clauses judged; 5 need a live model. |
+| 6 SME change for PD-0002 | Done, as a scenario | `conformance/scenarios/pd-0002/`: RULE-0002, check 005, skill 1.1.0 signed, SPEC-0002. |
+| 7 Gateway, pins, caps | Not started | Needs model credentials. |
+| 8 `loop` executor | Not started | |
+| 9 Second model, reviewer | Not started | |
+| 10 `cli` executor, swap drill | Not started | |
+| 11 Close the chain, update docs | Done for what is built | A12 passes on the scenario. |
+
+Changes to this spec made while building it:
+
+- **Fact types.** `spec.approved`, `review.advice` and `gateway.usage` are not
+  added yet. Approval is the spec's `status` in git, reviewed like any change.
+  The other two arrive with the gateway. `handback.result` was added: the
+  hand-back verdict is its own fact, written by the gates role.
+- **Attacks.** D2, D3, D4 and D6 are in the pack as attacks 22, 23, 27 and 28.
+  D1 is attack 36 and is a stated limit. D5 (an injected instruction to lower
+  the tier) is covered by attack 27: the executor states a tier and it is
+  recorded as a mismatch and ignored. A real injection test needs a live model.
+  D7 and D8 need the gateway.
+- **The scenario is an overlay, not a state of main.** After an SME adds a rule
+  and its check, the check is red until the code lands. Main stays green; the
+  red state is laid over a copy. See `docs/limits.md`, 7d.
+- **Tests were themselves tested.** Each of six hand-back rules was disabled in
+  turn. Two were found to shadow each other, with no test failing; tests that
+  isolate each were added.

@@ -1,0 +1,11 @@
+id: PD-0002
+type: product-decision
+title: Falling variable income uses the lower, recent figure
+statement: >
+  When variable income in the most recent 12 months is lower than in the 12
+  months before, the 24-month average overstates what the applicant now earns.
+  In that case eligible variable income per month is the most recent 12-month
+  total divided by 12.
+owner: income-policy-sme
+decided: 2026-11-10
+status: synthetic

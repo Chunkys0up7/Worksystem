@@ -53,6 +53,46 @@ class Skill:
         return list(self.manifest.get("pending", []))
 
 
+SPEC_STATUSES = ("draft", "approved", "done", "withdrawn")
+
+
+@dataclass
+class Spec:
+    """A spec is markdown with a small front matter block the harness reads."""
+
+    path: Path
+    meta: dict[str, Any]
+
+    @property
+    def id(self) -> str:
+        return str(self.meta.get("id", ""))
+
+    @property
+    def title(self) -> str:
+        return str(self.meta.get("title", ""))
+
+    @property
+    def status(self) -> str:
+        return str(self.meta.get("status", ""))
+
+    @property
+    def cites(self) -> list[str]:
+        return list(self.meta.get("cites", []))
+
+    @property
+    def allowed_paths(self) -> list[str]:
+        return list(self.meta.get("allowed_paths", []))
+
+
+def parse_front_matter(text: str) -> dict[str, Any]:
+    if not text.startswith("---\n"):
+        return {}
+    end = text.find("\n---", 4)
+    if end < 0:
+        return {}
+    return yaml.safe_load(text[4:end]) or {}
+
+
 @dataclass
 class Knowledge:
     root: Path
@@ -61,6 +101,7 @@ class Knowledge:
     decisions: dict[str, dict[str, Any]] = field(default_factory=dict)
     cards: dict[str, dict[str, Any]] = field(default_factory=dict)
     skills: dict[str, Skill] = field(default_factory=dict)
+    specs: dict[str, Spec] = field(default_factory=dict)
     load_problems: list[str] = field(default_factory=list)
 
 
@@ -95,6 +136,17 @@ def load_knowledge(root: Path) -> Knowledge:
         if skill.id in knowledge.skills:
             knowledge.load_problems.append(f"duplicate id {skill.id}")
         knowledge.skills[skill.id] = skill
+    for spec_path in sorted((root / "specs").glob("*.md")):
+        spec = Spec(path=spec_path, meta=parse_front_matter(spec_path.read_text()))
+        rel = spec_path.relative_to(root)
+        if not spec.id:
+            knowledge.load_problems.append(f"{rel}: no id in front matter")
+            continue
+        if not spec_path.name.startswith(spec.id):
+            knowledge.load_problems.append(f"{rel}: file name does not start with {spec.id}")
+        if spec.id in knowledge.specs:
+            knowledge.load_problems.append(f"duplicate id {spec.id}")
+        knowledge.specs[spec.id] = spec
     return knowledge
 
 
@@ -130,8 +182,12 @@ def validate(knowledge: Knowledge, policy: Policy) -> list[str]:
     for decision_id in knowledge.decisions:
         if not ids.is_decision(decision_id):
             problems.append(f"{decision_id}: not a valid decision or obligation id")
-        if not any(decision_id in s.implements for s in knowledge.skills.values()):
-            problems.append(f"{decision_id}: no skill implements this decision")
+        implemented = any(decision_id in s.implements for s in knowledge.skills.values())
+        cited = any(decision_id in spec.cites for spec in knowledge.specs.values())
+        if not implemented and not cited:
+            problems.append(
+                f"{decision_id}: no skill implements this decision and no spec cites it"
+            )
 
     for card_id, card in knowledge.cards.items():
         if ids.kind_of(card_id) != "card":
@@ -204,6 +260,19 @@ def validate(knowledge: Knowledge, policy: Policy) -> list[str]:
                 problems.append(
                     f"{skill.id}: consuming node {node['node']} is on no blueprint moment"
                 )
+
+    for spec in knowledge.specs.values():
+        if ids.kind_of(spec.id) != "spec":
+            problems.append(f"{spec.id}: not a valid spec id")
+        if spec.status not in SPEC_STATUSES:
+            problems.append(f"{spec.id}: status {spec.status!r} is not one of {SPEC_STATUSES}")
+        if not spec.cites:
+            problems.append(f"{spec.id}: cites no decision or obligation")
+        for cited_id in spec.cites:
+            if cited_id not in knowledge.decisions:
+                problems.append(f"{spec.id}: cites {cited_id}, which is not in the register")
+        if not spec.allowed_paths:
+            problems.append(f"{spec.id}: states no allowed paths")
 
     for skill_id in mapped:
         if skill_id not in knowledge.skills:

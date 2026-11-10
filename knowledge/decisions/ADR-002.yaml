@@ -1,0 +1,8 @@
+id: ADR-002
+type: architecture-decision
+title: The executor is a capability contract, not a named product
+statement: >
+  Any coding agent or agent SDK may act as the executor if it passes the conformance suite. The contract fixes what it is given, what it hands back and which controls it accepts. No control lives inside the executor.
+owner: architecture-sme
+implemented_in: specs/SPEC-0001-executor-contract.md, conformance/suite.py
+status: adopted for this reference build

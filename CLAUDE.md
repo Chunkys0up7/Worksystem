@@ -11,10 +11,14 @@ python -m harness validate   # every link resolves, every skill verifies
 python -m pytest -q          # tests (set LEDGER_PG_DSN to add Postgres)
 python -m harness attacks    # the attack pack
 python -m harness demo       # one pipeline, three tiers
-python -m harness tier --paths <paths>   # what tier is this change
+python -m harness conformance recorded    # the executor conformance suite
+python -m harness commits check           # every commit cites a spec and stays inside it
+python -m harness tier --paths <paths>    # what tier is this change
 ```
 
-All four of validate, pytest, attacks and demo must pass before any commit.
+validate, pytest, attacks, demo and conformance must pass before any commit.
+Every commit message carries a `Spec:` trailer (see `policy/commits.yaml`), and
+`commits check` must pass after it.
 
 ## Rules for every change
 
@@ -57,3 +61,11 @@ All four of validate, pytest, attacks and demo must pass before any commit.
 - Attack numbers in the docs follow the order of `attacks/pack.py`. Add new
   attacks at the end, or renumber the references.
 - `demo-keys/` is published on purpose. Never add a real credential anywhere.
+- A ledger payload key called `name`, `email`, `income` and similar is rejected
+  as personal data. Use `id` for identifiers.
+- Tests that pass are not proof they bite. When adding a control, disable it
+  once and confirm a test fails. Two hand-back rules shadowed each other until
+  this was done.
+- The scenario's skill release is signed. After changing anything under
+  `conformance/scenarios/*/overlay/knowledge/skills/`, re-release it and update
+  the content hash in the recording's `evidence.json`.

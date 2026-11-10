@@ -60,7 +60,7 @@ Attack numbers refer to `python -m harness attacks`.
 | Skills are a signed, content-hashed release unit, verified before anything runs them. | Proven | `harness/knowledge/skills.py` | Attacks 17, 19. Edit, add or remove any file in the skill. |
 | Signing proves a skill was reviewed. | **Limit** | It proves who released it | Attack 18. With the publisher key, a weakened check is re-signed. The control is two-person review of a Tier C change plus key custody. |
 | A skill makes no network call and holds no credential. | Partial | Pattern lint | Attack 19. A pattern lint is a floor: obfuscated code passes it. The real control is a sandbox with no egress. |
-| The ID chain answers "where is this decision implemented, and is it passing" and "why does this code look like this". | Partial | `harness/chain.py` | Decision, skill, check and ledger links are real. The spec and change-trailer links are stage 4 and shown as open. |
+| The ID chain answers "where is this decision implemented, and is it passing" and "why does this code look like this". | Proven on the scenario | `harness/chain.py`, `test_chain_is_closed_through_change` | Decision, skill, spec, change, check and ledger links all resolve for PD-0002. PD-0001 predates specs and the chain says so. |
 | Missing links fail the build. | Proven | `python -m harness validate`, `test_broken_links_are_found` | Break any reference between moment, card, decision, skill, check or skill map. |
 | The blueprint marks regulated moments, each with obligations and data classes. | Proven | `knowledge/blueprint/`, validation | Attack 21. |
 | Procedure cards are checked. | Not built | Listed as pending in the skill manifest | Stage 6: runtime evals on the agent node. |
@@ -71,16 +71,44 @@ Attack numbers refer to `python -m harness attacks`.
 | Claim | Status | Where | How to attack it |
 | --- | --- | --- | --- |
 | A regulated figure comes only from a deterministic decision service. | Partial | `services/decision_income/calc.py`: exact arithmetic, names the cards applied | Nothing yet stops an agent computing the figure itself. That is the node contract, stage 6. |
-| The author never judges its own work. | Partial | The executor identity can write only `change.proposed` | Model-level separation (a different model reviews) is stage 4. |
+| The author never judges its own work. | Partial | No identity in the executor role can write a tier, a check result, a hand-back verdict or a gate | Attack 33. Model-level separation (a different model reviews) needs a live model: SPEC-0001 task 9. |
 | The launcher cannot approve. | Not built | | Stage 5. |
 | Promotion happens only from git, through CI. | Not built here | `.github/workflows/ci.yml` runs the gates | Branch protection and the release manifest are stage 5. |
 
-## 6. Not built yet
+## 6. The executor contract (ADR-002, ADR-024, ADR-028; SPEC-0001)
+
+Built without any model: specs, roles, work orders, hand-back validation, the
+recorded executor and the conformance suite. Run it with
+`python -m harness conformance recorded --show-run`.
+
+| Claim | Status | Where | How to attack it |
+| --- | --- | --- | --- |
+| Work starts from an approved spec that cites decisions in the register. | Proven | `harness/knowledge/model.py`, `build_work_order` | Attacks 31, 32. |
+| Several executors can exist, each with its own identity and key, and none can write a control fact. | Proven | Roles in `policy/identities.yaml`; one role per fact type, one role per identity | Attacks 33, 34. |
+| The harness builds the work order; the executor gets a private worktree without the signing keys. | Proven | `harness/workorder.py`, `test_work_order_contents` | Look for anything on `policy/deny.yaml`'s read list inside a worktree. |
+| Skill-map load: evidence lists exactly the released skills the work order resolved. | Proven | `validate_handback`, `test_clause_skill_map_load` | Attacks 28, 30. |
+| The skill text reached the executor. | Partial | A one-time token in the worktree copy of the skill; `test_clause_skill_canary` | Attack 29. The token proves delivery, not use. Use is proven by the paired checks. Not yet shown with a live model. |
+| A change outside the spec's allowed paths is rejected, whatever the executor says it touched. | Proven | What changed is derived from a snapshot, not from the claim; `test_allowed_paths_bind_even_off_the_deny_list` | Attacks 22, 25. |
+| The deny list holds even when a spec is too broad. | Proven | `test_deny_list_binds_even_when_a_spec_allows_everything` | Attack 26. |
+| CI runs the released skill and its own harness, never the worktree's copy of either. | Proven | `harness/check_runner.py` loads both before the worktree is importable; `test_checks_use_the_released_skill_not_the_worktree_copy` | Attacks 23, 24. |
+| Evidence is re-derived. The executor's claim is recorded as a claim and never used as a result. | Proven | `harness/delivery.py`; differences are written as `evidence.mismatch` | Attack 27. |
+| The executor cannot state its tier or skip checks. | Proven | There is no input for either; stating them is recorded as a mismatch | Attack 27. |
+| Every proposed change ends in a gate result, including a blocked or crashed one. | Proven | `test_an_executor_that_crashes_ends_in_a_blocked_gate`, reconciliation rules | Kill the executor half way. |
+| Commits cite a spec and stay inside it; skill-governed code names its released skill versions. | Proven | `harness/trailers.py`, `python -m harness commits check`, run by CI on this repository | Attack 35. |
+| A recorded executor is labelled as recorded everywhere, and a stale recording cannot pass. | Proven | `test_recorded_executor_is_labelled`, `test_a_stale_recording_cannot_pass` | Attack 30. |
+| A partly judged executor is never called conformant. | Proven | `conformance/suite.py`: "n/a" is counted apart from "pass" | Read the verdict line for the recorded executor. |
+| An executor cannot read what it was not given. | **Limit** | The keys are not in the worktree, and nothing stops a process reading outside it | Attack 36. Needs an operating-system sandbox. |
+| The controls above were tested, not assumed. | Proven for hand-back validation | Six rules in `validate_handback` were each disabled in turn; a test failed every time | Disable one and run `python -m pytest tests/test_stage4.py`. A full mutation gate is stage 5. |
+| The executor can be swapped: two different executors, gates and evidence unchanged. | Not built | SPEC-0001 tasks 8 and 10 | Needs live models. |
+| Model portability: one executor, two model families. | Not built | SPEC-0001 tasks 7 and 9 | Needs live models. |
+| The deny list is honoured before each action, at a gateway. | Not built | Today it is enforced at hand-back, after the fact | SPEC-0001 tasks 7 and 8. |
+| Budget caps fail closed. | Not built | SPEC-0001 task 7 | |
+
+## 7. Not built yet
 
 | Claim | Stage |
 | --- | --- |
-| The executor is a capability contract; two different executors conform. | 4 |
-| Loaded-skill-version evidence; deny list honoured at the gateway. | 4 |
+| Live executors, the model gateway, the swap drill and model portability. | 4, tasks 7 to 10 |
 | Confidence tower: mutation score, held-out tests, fitness functions as blocking gates. | 5 |
 | Two-person release for Tier C; harness-degraded mode. | 5 |
 | Agent runtime: case-pinned skill versions, checkpoint and ledger in one transaction. | 6 |

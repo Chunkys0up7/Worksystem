@@ -200,11 +200,12 @@ class Ledger:
         if record_class is None:
             raise LedgerRejected("unknown-fact-type", sub.fact_type)
 
-        writer = policy.writer_of(sub.fact_type)
-        if writer != sub.actor:
+        if not policy.may_write(sub.actor, sub.fact_type):
             raise LedgerRejected(
                 "not-authoritative-writer",
-                f"{sub.fact_type} is written only by {writer}, not {sub.actor}",
+                f"{sub.fact_type} is written only by the "
+                f"{policy.writer_role_of(sub.fact_type)} role; "
+                f"{sub.actor} holds the {ident.role} role",
             )
 
         digest = content_hash(sub.actor, sub.fact_type, sub.payload, sub.refs)
@@ -309,9 +310,10 @@ class Ledger:
                 problems.append(
                     f"{entry.id}: writer signature does not verify for {entry.actor}"
                 )
-            if self.policy.writer_of(entry.fact_type) != entry.actor:
+            if not self.policy.may_write(entry.actor, entry.fact_type):
                 problems.append(
-                    f"{entry.id}: {entry.actor} is not the writer of {entry.fact_type}"
+                    f"{entry.id}: {entry.actor} does not hold the role that "
+                    f"writes {entry.fact_type}"
                 )
 
             prev_hash = entry.entry_hash

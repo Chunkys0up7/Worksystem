@@ -67,13 +67,50 @@ no recovery procedure for an entry that was stored but not anchored (the build
 detects it and refuses further writes, which is the safe half). Harness-degraded
 mode, for when the pipeline itself is down, is stage 5.
 
-## 7. There is no agent in it yet
+## 7. There is no live agent in it yet
 
-Stages 1 to 3 contain no model call. The "executor" is an identity that writes
-one fact type. This is deliberate: the evidence layer has to be right before
-anything is allowed to generate changes into it, and it shows the method does
-not depend on a tool. But it means nothing here demonstrates an agent loading a
-skill, honouring a deny list, or being swapped for another. That is stage 4.
+No model call has run in this repository. Stage 4 so far builds the harness
+side of the executor contract and exercises it with a recorded executor, which
+replays a stored patch, and with scripted executors that misbehave on purpose.
+That shows the controls sit around the executor and do not depend on its good
+behaviour. It shows nothing about any model or coding agent: not that one can
+do the work, not that two are interchangeable, not what it costs. The recorded
+executor is judged on 11 of 16 conformance clauses; the other five cannot be
+judged without a live model, and the suite says so and never calls it
+conformant.
+
+## 7a. No operating-system sandbox
+
+An executor is given a private worktree with no signing keys in it. Nothing
+stops the executor process reading outside that directory: attack 36 reads the
+keys from the repository's own path. Hand-back validation sees what an executor
+changed, never what it read or sent elsewhere. The control is a container with
+only the worktree mounted, no credentials in its environment, and no network
+route except the model gateway. Until then, the deny list is enforced after the
+fact, at hand-back, and not before each action.
+
+## 7b. The one-time token proves delivery, not use
+
+The token placed in the worktree copy of a skill shows the skill text reached
+the executor. It does not show the model followed it. Whether the rules were
+followed is what the paired checks decide.
+
+## 7c. The harness is not yet built through its own contract
+
+This repository's own changes are made by a coding agent working directly in
+the tree, under SPEC-0001, checked by `python -m harness commits check` (every
+commit cites a spec and stays inside its allowed paths) and by CI. They do not
+go through a work order, a worktree and hand-back validation. The plan says the
+harness governs all delivered code whoever wrote it. That is not true here yet.
+
+## 7d. A new rule's check is red until the code lands
+
+When an SME adds a rule and its paired check, the check fails until the code
+implements the rule. The scenario models this as an overlay: the SME's change
+first, the executor's change on top. On a real main branch the two must land
+together, or the skill release must be staged, or main is red in between. This
+build does not settle which. It is a design question for stage 5's release
+manifest: the gate has to evaluate a stack of changes, not one.
 
 ## 8. The slice is small and synthetic
 

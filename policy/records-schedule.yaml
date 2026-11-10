@@ -10,7 +10,8 @@ record_classes:
     floor_days: 2555
     ceiling_days: 2920
     legal_hold_override: true
-    fact_types: [tier.assigned, check.result, gate.result, reconciliation.result]
+    fact_types: [tier.assigned, handback.result, evidence.mismatch, check.result,
+                 gate.result, reconciliation.result, conformance.result]
 
   - name: knowledge-release
     floor_days: 2555
@@ -22,7 +23,7 @@ record_classes:
     floor_days: 1095
     ceiling_days: 1460
     legal_hold_override: true
-    fact_types: [change.proposed]
+    fact_types: [change.proposed, executor.evidence]
 
 # Personal data never enters the ledger. It is recorded by reference: a key
 # ending in _ref that points into an erasable store. Any of these keys anywhere
@@ -47,6 +48,6 @@ personal_data_keys:
 # the same subject. The reconciler reports gaps; it does not repair them.
 completeness:
   - for_each: change.proposed
-    require: [tier.assigned]
+    require: [gate.result]
   - for_each: tier.assigned
     require: [gate.result]

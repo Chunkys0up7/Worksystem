@@ -1,11 +1,19 @@
 """Runs one skill's paired checks in a fresh process and prints JSON results.
 
-A separate process means the checks import the governed code from the given
-root and nothing else, and nothing they import leaks into the caller. In a
-real pipeline this process is also where the sandbox goes: no network, no
-credentials, read-only source. Here it is a plain subprocess. See docs/limits.md.
+Two roots, kept apart on purpose:
 
-Usage: python -m harness.check_runner ROOT SKILL_ID
+  ROOT       where the skill, its checks and the cards come from. Trusted:
+             the released skill in the base repository.
+  CODE_ROOT  where the governed code is imported from. Untrusted when it is an
+             executor's worktree.
+
+The harness and the skill are loaded before CODE_ROOT is put on the import
+path, so nothing in a worktree can replace them. A separate process also means
+nothing the checks import leaks into the caller. In a real pipeline this
+process is where the sandbox goes: no network, no credentials, read-only
+source. Here it is a plain subprocess. See docs/limits.md.
+
+Usage: python -m harness.check_runner ROOT SKILL_ID [CODE_ROOT]
 """
 
 from __future__ import annotations
@@ -19,14 +27,17 @@ from pathlib import Path
 def main(argv: list[str]) -> int:
     root = Path(argv[0]).resolve()
     skill_id = argv[1]
-    sys.path[:] = [p for p in sys.path if p != str(root)]
-    sys.path.insert(0, str(root))
+    code_root = Path(argv[2]).resolve() if len(argv) > 2 else root
 
     from harness.knowledge import load_knowledge
 
     knowledge = load_knowledge(root)
     skill = knowledge.skills[skill_id]
-    ctx = {"root": str(root), "skill_dir": str(skill.dir), "cards": knowledge.cards}
+    ctx = {"root": str(code_root), "skill_dir": str(skill.dir), "cards": knowledge.cards}
+
+    # Only now does the governed code become importable.
+    sys.path[:] = [p for p in sys.path if p not in (str(root), str(code_root))]
+    sys.path.insert(0, str(code_root))
 
     results = []
     for index, check in enumerate(skill.checks):

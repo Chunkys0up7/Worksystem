@@ -37,6 +37,9 @@ jobs:
       - name: Every link resolves and every skill verifies
         run: python -m harness validate
 
+      - name: Every commit cites a spec and stays inside it
+        run: python -m harness commits check
+
       - name: Tier this change
         if: github.event_name == 'pull_request'
         run: >
@@ -48,6 +51,9 @@ jobs:
 
       - name: Attack pack
         run: python -m harness attacks
+
+      - name: Executor conformance (recorded executor, no model)
+        run: python -m harness conformance recorded --show-run
 
       - name: One pipeline, three tiers
         run: python -m harness demo

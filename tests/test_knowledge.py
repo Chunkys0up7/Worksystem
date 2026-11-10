@@ -135,8 +135,12 @@ def test_broken_links_are_found(copy, path, old, new, expect):
     [
         ("policy/records-schedule.yaml", "floor_days: 1095", "floor_days: 9999", "floor is above ceiling"),
         ("policy/identities.yaml", "may_write: [tier.assigned]", "may_write: []", "exactly one authoritative"),
-        ("policy/identities.yaml", "may_write: [change.proposed]", "may_write: [change.proposed, made.up]",
-         "no record class"),
+        ("policy/identities.yaml", "may_write: [change.proposed, executor.evidence]",
+         "may_write: [change.proposed, executor.evidence, made.up]", "no record class"),
+        ("policy/identities.yaml", "may_write: [tier.assigned]", "may_write: [tier.assigned, gate.result]",
+         "exactly one authoritative"),
+        ("policy/identities.yaml", "    role: tiering", "    role: [tiering, gates]", "exactly one role"),
+        ("policy/identities.yaml", "    role: tiering", "    role: nobody", "unknown role"),
         ("policy/path-map.yaml", "tier: A", "tier: Z", "bad tier"),
     ],
 )
@@ -200,7 +204,9 @@ def test_unclassifiable_change_is_blocked_and_reconciliation_sees_it(sqlite_ledg
     run = run_change("CHG-u", ["knowledge/skills/ghost/SKILL.md"], ledger=sqlite_ledger,
                      keydir=keydir, policy=policy, knowledge=knowledge)
     assert run.outcome == "blocked" and run.tier is None
-    assert sqlite_ledger.reconcile() == ["CHG-u: has change.proposed but no tier.assigned"]
+    gate = sqlite_ledger.find(fact_type="gate.result")
+    assert len(gate) == 1 and gate[0].payload["outcome"] == "blocked"
+    assert sqlite_ledger.reconcile() == []
 
 
 def test_drifted_code_is_blocked_with_recorded_failures(copy, tmp_path):
