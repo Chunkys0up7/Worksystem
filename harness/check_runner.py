@@ -24,7 +24,23 @@ import sys
 from pathlib import Path
 
 
+def heldout(argv: list[str]) -> int:
+    """--heldout ROOT NAME CODE_ROOT: run ROOT/heldout/NAME/run.py against CODE_ROOT."""
+    root, name, code_root = Path(argv[0]).resolve(), argv[1], Path(argv[2]).resolve()
+    directory = root / "heldout" / name
+    spec = importlib.util.spec_from_file_location("_heldout", directory / "run.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.path[:] = [p for p in sys.path if p not in (str(root), str(code_root))]
+    sys.path.insert(0, str(code_root))
+    spec.loader.exec_module(module)
+    cases, failures = module.run({"root": str(code_root), "dir": str(directory)})
+    print(json.dumps({"cases": cases, "failures": failures}))
+    return 0
+
+
 def main(argv: list[str]) -> int:
+    if argv and argv[0] == "--heldout":
+        return heldout(argv[1:])
     root = Path(argv[0]).resolve()
     skill_id = argv[1]
     code_root = Path(argv[2]).resolve() if len(argv) > 2 else root

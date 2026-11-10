@@ -11,7 +11,9 @@ record_classes:
     ceiling_days: 2920
     legal_hold_override: true
     fact_types: [tier.assigned, handback.result, evidence.mismatch, check.result,
-                 gate.result, reconciliation.result, conformance.result]
+                 tower.result, gate.result, reconciliation.result, conformance.result,
+                 approval.recorded, release.approved, release.refused, release.manifest,
+                 degraded.backfilled]
 
   - name: knowledge-release
     floor_days: 2555

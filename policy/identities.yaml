@@ -23,7 +23,7 @@ roles:
 
   - name: gates
     description: CI validating hand-backs, re-running checks, recording gates.
-    may_write: [handback.result, evidence.mismatch, check.result, gate.result]
+    may_write: [handback.result, evidence.mismatch, check.result, tower.result, gate.result]
 
   - name: skill-publisher
     description: Release of SME-owned skills, after review and merge.
@@ -44,6 +44,14 @@ roles:
   - name: reviewer
     description: Advisory review by a model that did not write the change. Advice only.
     may_write: [review.advice]
+
+  - name: approver
+    description: A named person approving a Tier C release. Never the person who launched the work.
+    may_write: [approval.recorded]
+
+  - name: release
+    description: Decides a release from recorded gates and approvals, and seals the manifest.
+    may_write: [release.approved, release.refused, release.manifest, degraded.backfilled]
 
 identities:
   - name: agent-executor
@@ -82,3 +90,18 @@ identities:
 
   - name: advisory-reviewer
     role: reviewer
+
+  - name: approver-ana
+    role: approver
+    note: A person. Synthetic.
+
+  - name: approver-ben
+    role: approver
+    note: A person. Synthetic.
+
+  - name: approver-cy
+    role: approver
+    note: A person. Synthetic.
+
+  - name: ci-release
+    role: release

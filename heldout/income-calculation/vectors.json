@@ -1,0 +1,86 @@
+[
+ {
+  "base": "3100.00",
+  "frequency": "biweekly",
+  "months": 0,
+  "variable": "0",
+  "expected": "6716.67"
+ },
+ {
+  "base": "812.50",
+  "frequency": "weekly",
+  "months": 0,
+  "variable": "0",
+  "expected": "3520.83"
+ },
+ {
+  "base": "4000.00",
+  "frequency": "semimonthly",
+  "months": 12,
+  "variable": "9000.00",
+  "expected": "8000.00"
+ },
+ {
+  "base": "7000.00",
+  "frequency": "monthly",
+  "months": 24,
+  "variable": "9000.00",
+  "expected": "7375.00"
+ },
+ {
+  "base": "7000.00",
+  "frequency": "monthly",
+  "months": 23,
+  "variable": "9000.00",
+  "expected": "7000.00"
+ },
+ {
+  "base": "7000.00",
+  "frequency": "monthly",
+  "months": 25,
+  "variable": "0.01",
+  "expected": "7000.00"
+ },
+ {
+  "base": "0",
+  "frequency": "monthly",
+  "months": 48,
+  "variable": "4800.00",
+  "expected": "200.00"
+ },
+ {
+  "base": "7000.00",
+  "frequency": "monthly",
+  "months": 25,
+  "variable": "0.60",
+  "expected": "7000.03"
+ },
+ {
+  "base": "1",
+  "frequency": "yearly",
+  "months": 0,
+  "variable": "0",
+  "raises": true
+ },
+ {
+  "base": "-0.01",
+  "frequency": "monthly",
+  "months": 0,
+  "variable": "0",
+  "raises": true
+ },
+ {
+  "base": "1",
+  "frequency": "monthly",
+  "months": -1,
+  "variable": "0",
+  "raises": true
+ },
+ {
+  "base": "1",
+  "frequency": "monthly",
+  "months": 0,
+  "variable": "-5",
+  "raises": true
+ }
+]

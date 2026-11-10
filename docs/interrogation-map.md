@@ -16,7 +16,7 @@ Attack numbers refer to `python -m harness attacks`.
 | Claim | Status | Where | How to attack it |
 | --- | --- | --- | --- |
 | Lifecycle shortens only if review, approval and change control are redesigned around evidence and tiers. Generation is already cheap. | Not built, and not provable by a demo | `docs/limits.md` | Ask for the retro-tier mix of a real quarter. If most changes land in Tier C, the gain is small whatever the tooling. |
-| Review effort follows risk: the same pipeline asks for different things by tier. | Partial | `harness/change.py`, `python -m harness demo` | Tier C stops at "held for approval". The two-person approval step is stage 5. Tier A auto-merge with sampling is not built. |
+| Review effort follows risk: the same pipeline asks for different things by tier. | Proven for the gates | `policy/tower.yaml`, `harness/release.py` | Tier C needs the full tower and two people; A and B do not. Tier A auto-merge with sampling is not built. |
 | The retro-tier mix is the ceiling on lifecycle gain. | Partial | `harness/tiering/retro.py`, `test_retro_over_a_real_history` | The tool is real; the number is only as good as the path map you give it. Run it on your own repository. |
 
 ## 2. Risk tiers (ADR-020)
@@ -72,7 +72,7 @@ Attack numbers refer to `python -m harness attacks`.
 | --- | --- | --- | --- |
 | A regulated figure comes only from a deterministic decision service. | Partial | `services/decision_income/calc.py`: exact arithmetic, names the cards applied | Nothing yet stops an agent computing the figure itself. That is the node contract, stage 6. |
 | The author never judges its own work. | Partial | No identity in the executor role can write a tier, a check result, a hand-back verdict or a gate | Attack 33. Model-level separation (a different model reviews) needs a live model: SPEC-0001 task 9. |
-| The launcher cannot approve. | Not built | | Stage 5. |
+| The launcher cannot approve. | Proven | `harness/release.py` | Attack 50. |
 | Promotion happens only from git, through CI. | Not built here | `.github/workflows/ci.yml` runs the gates | Branch protection and the release manifest are stage 5. |
 
 ## 6. The executor contract (ADR-002, ADR-024, ADR-028; SPEC-0001)
@@ -111,13 +111,30 @@ conformance suite. Every model is scripted and labelled. Run it with
 | A command-line agent's model calls are pinned and budgeted. | **Limit** | It brings its own model access | Attack 46. Point the product at the gateway. |
 | Any of this holds with a live model. | Not shown | No live model has run in this repository | Register an adapter for a pinned model and run `python -m harness conformance loop`. |
 
-## 7. Not built yet
+## 7. The confidence tower and release (ADR-013, ADR-020; SPEC-0003)
+
+| Claim | Status | Where | How to attack it |
+| --- | --- | --- | --- |
+| No number, no merge: each gate a tier requires records a number and a threshold. | Proven | `harness/tower/`, `policy/tower.yaml`; `tower.result` entries by the gates role | Remove a skill's held-out cases: Tier C has no number and blocks (`test_no_number_no_merge`). |
+| Review effort follows risk: Tier A and B need fitness only; Tier C adds held-out cases, mutation and two people. | Proven | `test_tower_gates_by_tier` | Change `policy/tower.yaml`. That change is itself Tier C. |
+| Architecture rules are gates, not prose. | Proven | `policy/fitness.yaml`, `harness/tower/fitness.py` | Attack 48. Import an adapter into the harness, or use a float in a decision service. |
+| A change that fits the visible checks without implementing the rule is caught. | Proven | Held-out cases under `heldout/`, never copied into a worktree | Attack 47. |
+| The checks would notice wrong code. | Proven on the slice | AST mutation of the changed critical module; score against a threshold | Attack 49. The operators are few; see limits. |
+| Tier C is released by two people, neither the launcher, each approval bound to the gate result released. | Proven | `harness/release.py` | Attacks 50, 51, 52. |
+| No agent or pipeline identity can approve. | Proven | Roles | Attack 53. |
+| A release seals a manifest and the stored release must match it. | Proven | `release.manifest`, `verify_stored` | Attack 54. |
+| A release refuses on a damaged ledger. | Proven | `test_release_refuses_twice_and_refuses_on_a_damaged_ledger` | Edit an entry, then release. |
+| Degraded mode waives nothing. | Proven | `harness/degraded.py`: fixed gates, two signers, signed spool record, back-fill, late flag, overdue report | Attack 55. |
+| An approval means the approver looked. | **Limit** | It means a named person signed | Nothing here measures diligence. Sampling approvals against outcomes is not built. |
+| Promotion happens only from git, through the pipeline. | Not built | The release reads the validated worktree | Needs a real pipeline with branch protection. |
+| Tier A merges automatically, with sampling. | Not built | | |
+| Canary, online evals and automatic rollback. | Not built | | |
+
+## 8. Not built yet
 
 | Claim | Stage |
 | --- | --- |
 | A live model behind the gateway; a live coding-agent product as the CLI executor. | 4, needs credentials |
-| Confidence tower: mutation score, held-out tests, fitness functions as blocking gates. | 5 |
-| Two-person release for Tier C; harness-degraded mode. | 5 |
 | Agent runtime: case-pinned skill versions, checkpoint and ledger in one transaction. | 6 |
 | Defect loop: reproduce first, permanent regression test and eval; return path from traces. | 7 |
 | Full attack pack across both programmes. | 8 |

@@ -167,5 +167,63 @@ class PersonalDataInEvidence(RecordedExecutor):
         return handback
 
 
+def _variant_a(order: WorkOrder) -> str:
+    """The correct implementation, as stored for the scripted models."""
+    scenario = order.base_root / "conformance" / "scenarios" / "pd-0002"
+    return (scenario / "scripted" / "a" / CALC).read_text()
+
+
+class Overfits(RecordedExecutor):
+    """Makes the visible check pass by special-casing its exact inputs."""
+
+    id = "double-overfits"
+
+    def run(self, order: WorkOrder) -> HandBack:
+        handback = super().run(order)
+        source = _variant_a(order)
+        old = "                if variable_total_recent < earlier:"
+        assert old in source
+        (order.worktree / CALC).write_text(source.replace(
+            old,
+            "                if (variable_total_recent == Decimal(\"6000.00\")\n"
+            "                        and variable_total_in_window == Decimal(\"24000.00\")):"))
+        return handback
+
+
+class UsesFloat(RecordedExecutor):
+    """A correct change that drags binary floating point and `os` into a decision service."""
+
+    id = "double-uses-float"
+
+    def run(self, order: WorkOrder) -> HandBack:
+        handback = super().run(order)
+        source = _variant_a(order)
+        old = "    cards = [\"FACT-0001\", \"CALC-0001\"]"
+        assert old in source
+        source = source.replace(old, "    _approx = float(base_per_period) * 1.0\n" + old)
+        source = source.replace("from dataclasses import dataclass",
+                                "import os\nfrom dataclasses import dataclass")
+        (order.worktree / CALC).write_text(source)
+        return handback
+
+
+class UntestedBranch(RecordedExecutor):
+    """A correct change with an extra branch that no check exercises."""
+
+    id = "double-untested-branch"
+
+    def run(self, order: WorkOrder) -> HandBack:
+        handback = super().run(order)
+        source = _variant_a(order)
+        old = "    base_monthly = base_monthly.quantize(_CENT, rounding=ROUND_HALF_UP)"
+        assert old in source
+        (order.worktree / CALC).write_text(source.replace(
+            old,
+            "    if base_per_period > Decimal(900000) and variable_history_months > 600:\n"
+            "        base_monthly = base_monthly * 2 - 7 + 3\n"
+            "        base_monthly = base_monthly / 5 + 11 - 4\n" + old))
+        return handback
+
+
 def recording(scenario_dir: Path) -> Path:
     return scenario_dir / "recordings" / "recorded"

@@ -125,6 +125,28 @@ together, or the skill release must be staged, or main is red in between. This
 build does not settle which. It is a design question for stage 5's release
 manifest: the gate has to evaluate a stack of changes, not one.
 
+## 7f. What the tower and the release do not show
+
+- **An approval is a signature, not diligence.** Two named people signed. Whether
+  they read the evidence is not measured. Sampling approvals against later
+  outcomes is the control and is not built.
+- **The mutation gate is small.** A handful of operators on one file of about
+  eighty lines. It found a real gap here (an amount between zero and one was
+  untested; a held-out case now covers it). On a large module it would be slow
+  and its threshold would need tuning per module. Equivalent mutants count
+  against the score, which is why the threshold is below one.
+- **Held-out cases are only as held-out as their custody.** They are kept from
+  executors. They are in the same repository as everything else, so a person
+  with repository access can read them and tune a change to them.
+- **Release reads the validated worktree, not git.** The plan says promotion
+  happens only from git through the pipeline. A real pipeline with branch
+  protection is needed for that. There is no canary, no online evaluation and
+  no rollback.
+- **Tier A does not merge automatically.** Auto-merge with sampling is the
+  largest single source of lifecycle gain in the plan, and it is not built.
+- **Degraded mode is drilled in tests, not in an outage.** The spool is a
+  directory. Who may write to it during an outage is not controlled.
+
 ## 8. The slice is small and synthetic
 
 One blueprint, three moments, four cards, one skill, one decision service of

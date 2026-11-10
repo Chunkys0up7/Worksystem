@@ -1,0 +1,23 @@
+# The confidence tower: which gates each tier needs. "No number, no merge."
+# Thresholds are ILLUSTRATIVE.
+
+version: 0
+
+tiers:
+  A: [fitness]
+  B: [fitness]
+  C: [fitness, heldout, mutation]
+
+mutation:
+  threshold: 0.8   # killed over total; equivalent mutants are why this is below 1
+
+# Tier C release: who must approve, and who may not.
+release:
+  approvals_required: 2
+
+# When the pipeline or the ledger is down. A fixed subset of gates, two named
+# people, and evidence back-filled within the window. Drilled, not improvised.
+degraded:
+  gates: [paired-checks, fitness]
+  approvals_required: 2
+  backfill_days: 3

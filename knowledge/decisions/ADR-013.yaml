@@ -1,0 +1,8 @@
+id: ADR-013
+type: architecture-decision
+title: "The confidence tower: no number, no merge"
+statement: >
+  Deterministic gates block; AI review advises. A change merges on recorded numbers: paired checks, held-out cases, mutation score on critical modules, fitness functions. Which gates apply depends on the tier.
+owner: architecture-sme
+implemented_in: harness/tower/, policy/tower.yaml, policy/fitness.yaml
+status: adopted for this reference build

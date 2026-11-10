@@ -1,0 +1,9 @@
+# Release units: what is released, versioned and pinned as one thing.
+# One repository, many independent release units, one pipeline.
+
+version: 0
+
+units:
+  - unit: decision-income
+    kind: decision service
+    paths: ["services/decision_income/**"]

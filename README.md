@@ -18,8 +18,8 @@ it are synthetic.
 pip install pyyaml cryptography pytest hypothesis
 python -m harness demo                             # one pipeline, three changes, three tiers
 python -m harness conformance loop --show-run      # a work order through the executor contract
-python -m harness attacks                          # 46 scripted attempts to break the claims
-python -m pytest -q                                # 206 tests, including property-based tests
+python -m harness attacks                          # 55 scripted attempts to break the claims
+python -m pytest -q                                # 256 tests, including property-based tests
 ```
 
 Python 3.11 or later. No services to start: the ledger defaults to SQLite.

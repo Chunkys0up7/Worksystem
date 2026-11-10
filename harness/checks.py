@@ -66,6 +66,32 @@ def governing_skills(paths: list[str], policy: Policy) -> list[str]:
     return out
 
 
+def _run_runner(args: list[str]) -> tuple[object | None, str]:
+    """Run harness.check_runner in a fresh process. Returns (parsed output, problem)."""
+    harness_home = str(Path(__file__).resolve().parent.parent)
+    env = dict(os.environ)
+    env["PYTHONPATH"] = harness_home
+    try:
+        # Checks run against source, never against cached bytecode. A stale
+        # .pyc beside an edited file (same size, same second) would otherwise
+        # let a check pass against code that is no longer there. The runner
+        # gets an empty, private bytecode cache.
+        with tempfile.TemporaryDirectory(prefix="check-pycache-") as cache:
+            env["PYTHONPYCACHEPREFIX"] = cache
+            proc = subprocess.run(
+                [sys.executable, "-m", "harness.check_runner", *args],
+                capture_output=True, text=True, timeout=RUNNER_TIMEOUT_SECONDS,
+                cwd=harness_home, env=env,
+            )
+        if proc.returncode != 0:
+            return None, (proc.stderr.strip().splitlines() or ["runner failed"])[-1]
+        return json.loads(proc.stdout), ""
+    except subprocess.TimeoutExpired:
+        return None, f"runner timed out after {RUNNER_TIMEOUT_SECONDS}s"
+    except json.JSONDecodeError:
+        return None, "runner output was not readable"
+
+
 def run_skill_checks(
     skill: Skill, knowledge: Knowledge, policy: Policy, code_root: Path | None = None
 ) -> list[CheckResult]:
@@ -80,36 +106,34 @@ def run_skill_checks(
     """
     verify(skill, policy)
     root = knowledge.root
-    code_root = code_root or root
-    harness_home = str(Path(__file__).resolve().parent.parent)
-    env = dict(os.environ)
-    env["PYTHONPATH"] = harness_home
-    try:
-        # Checks run against source, never against cached bytecode. A stale
-        # .pyc beside an edited file (same size, same second) would otherwise
-        # let a check pass against code that is no longer there. The runner
-        # gets an empty, private bytecode cache.
-        with tempfile.TemporaryDirectory(prefix="check-pycache-") as cache:
-            env["PYTHONPYCACHEPREFIX"] = cache
-            proc = subprocess.run(
-                [sys.executable, "-m", "harness.check_runner",
-                 str(root), skill.id, str(code_root)],
-                capture_output=True, text=True, timeout=RUNNER_TIMEOUT_SECONDS,
-                cwd=harness_home, env=env,
-            )
-        rows = json.loads(proc.stdout) if proc.returncode == 0 else None
-        problem = proc.stderr.strip().splitlines()[-1] if proc.stderr.strip() else "runner failed"
-    except subprocess.TimeoutExpired:
-        rows, problem = None, f"runner timed out after {RUNNER_TIMEOUT_SECONDS}s"
-    except json.JSONDecodeError:
-        rows, problem = None, "runner output was not readable"
-
-    if rows is None or [r["check_id"] for r in rows] != [c["id"] for c in skill.checks]:
+    rows, problem = _run_runner([str(root), skill.id, str(code_root or root)])
+    if not isinstance(rows, list) or [r["check_id"] for r in rows] != [c["id"] for c in skill.checks]:
         return [
-            CheckResult(c["id"], list(c["covers"]), False, f"error: {problem}")
+            CheckResult(c["id"], list(c["covers"]), False, f"error: {problem or 'runner failed'}")
             for c in skill.checks
         ]
     return [CheckResult(r["check_id"], r["covers"], bool(r["passed"]), r["detail"]) for r in rows]
+
+
+def heldout_dir(root: Path, skill: Skill) -> Path:
+    return root / "heldout" / skill.dir.name
+
+
+def run_heldout(skill: Skill, knowledge: Knowledge, code_root: Path | None = None
+                ) -> tuple[int, list[str]] | None:
+    """Run the held-out cases for a skill: cases the executor never sees.
+
+    They live outside the skill, under heldout/, which is never copied into a
+    worktree. Returns (cases run, failures), or None when the skill has none.
+    A runner that fails counts as one failure: no number is not a pass.
+    """
+    root = knowledge.root
+    if not (heldout_dir(root, skill) / "run.py").exists():
+        return None
+    out, problem = _run_runner(["--heldout", str(root), skill.dir.name, str(code_root or root)])
+    if not isinstance(out, dict):
+        return 0, [f"held-out runner failed: {problem or 'no output'}"]
+    return int(out.get("cases", 0)), list(out.get("failures", []))
 
 
 def record_results(

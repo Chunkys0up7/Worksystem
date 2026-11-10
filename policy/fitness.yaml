@@ -1,0 +1,32 @@
+# Fitness functions: architecture rules as code. A violation blocks, in every tier.
+# Read from the trusted repository, applied to the code under test.
+
+version: 0
+
+rules:
+  - id: FIT-001
+    title: A decision service imports only exact-arithmetic and typing modules
+    paths: ["services/**/*.py"]
+    allow_imports: [__future__, dataclasses, decimal, typing]
+
+  - id: FIT-002
+    title: No binary floating point in a decision service
+    paths: ["services/**/*.py"]
+    forbid_float: true
+
+  - id: FIT-003
+    title: The harness never imports an executor, an adapter, the suite, the attack pack or the runtime
+    paths: ["harness/**/*.py"]
+    except: ["harness/cli.py"]   # the edge: adapters are looked up by name here and nowhere else
+    forbid_imports: [executors, conformance, attacks, runtime]
+
+  - id: FIT-004
+    title: An executor adapter never touches the ledger, a gate, a signing key or the tier rules
+    paths: ["executors/**/*.py"]
+    forbid_imports: [harness.ledger, harness.gates, harness.identity, harness.delivery,
+                     harness.checks, harness.tiering, harness.release, harness.policy]
+
+  - id: FIT-005
+    title: The agent runtime writes evidence only through the ledger API
+    paths: ["runtime/**/*.py"]
+    forbid_imports: [sqlite3, psycopg, harness.ledger.store, executors, attacks]

@@ -1,0 +1,8 @@
+id: ADR-020
+type: architecture-decision
+title: "Risk tiers A, B and C set by deterministic rules"
+statement: >
+  Tier is set by rules from what a change touches, never by its author. Tier C needs obligation IDs, the full tower and a two-person release. Review effort follows risk.
+owner: architecture-sme
+implemented_in: harness/tiering/, harness/release.py
+status: adopted for this reference build

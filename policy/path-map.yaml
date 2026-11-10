@@ -66,6 +66,10 @@ paths:
     tier: C
     reason: the conformance suite and its scenarios decide which executors may be used
 
+  - glob: "heldout/**"
+    tier: C
+    reason: held-out cases are a gate; weakening one weakens every Tier C release
+
   - glob: "harness/**"
     tier: B
     data_classes: [internal]
@@ -78,6 +82,38 @@ paths:
   - glob: "harness/tiering/**"
     tier: C
     reason: the rulebook that sets tiers cannot be changed as routine work
+
+  - glob: "harness/tower/**"
+    tier: C
+    reason: the confidence tower; its gates decide what merges
+
+  - glob: "harness/release.py"
+    tier: C
+    reason: the release rule and the manifest
+
+  - glob: "harness/degraded.py"
+    tier: C
+    reason: the path used when the pipeline is down
+
+  - glob: "harness/delivery.py"
+    tier: C
+    reason: the order of control around an executor
+
+  - glob: "harness/workorder.py"
+    tier: C
+    reason: hand-back validation
+
+  - glob: "harness/gateway.py"
+    tier: C
+    reason: model pins, roles and budget
+
+  - glob: "harness/tools.py"
+    tier: C
+    reason: the deny list, enforced before an action
+
+  - glob: "harness/check*.py"
+    tier: C
+    reason: the check runner; what it trusts decides what a check proves
 
   - glob: "harness/gates.py"
     tier: C

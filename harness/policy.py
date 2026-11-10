@@ -62,6 +62,9 @@ class Policy:
     deny_read: tuple[str, ...] = ()
     deny_write: tuple[str, ...] = ()
     enforce_commits_after: str | None = None
+    fitness_rules: list[dict[str, Any]] = None  # type: ignore[assignment]
+    tower: dict[str, Any] = None  # type: ignore[assignment]
+    release_units: list[dict[str, Any]] = None  # type: ignore[assignment]
     models: dict[str, dict[str, Any]] = None  # type: ignore[assignment]
     model_caps: dict[str, int] = None  # type: ignore[assignment]
 
@@ -202,6 +205,9 @@ def load_policy(root: Path | None = None) -> Policy:
         deny_read=tuple(deny.get("read", [])),
         deny_write=tuple(deny.get("write", [])),
         enforce_commits_after=str(commits["enforce_after"]) if commits.get("enforce_after") else None,
+        fitness_rules=list(_read(root, "fitness.yaml").get("rules", [])),
+        tower=_read(root, "tower.yaml"),
+        release_units=list(_read(root, "release-units.yaml").get("units", [])),
         models=models,
         model_caps=dict(model_doc.get("caps", {})),
     )

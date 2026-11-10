@@ -8,6 +8,9 @@ read:
   - "demo-keys/**"
   - ".ledger/**"
   - ".git/**"
+  - "heldout/**"      # cases the executor must never see
+  - ".releases/**"
+  - "conformance/**"  # scenarios hold recordings and held-out overlays
 
 # Never writable by an executor. A hand-back that changes any of these is
 # rejected, even when the spec's allowed paths would include it.
@@ -19,5 +22,6 @@ write:
   - "conformance/**"
   - "attacks/**"
   - "demo-keys/**"
+  - "heldout/**"
   - ".github/**"
   - "CLAUDE.md"

@@ -22,8 +22,8 @@ Every commit message carries a `Spec:` trailer (see `policy/commits.yaml`), and
 
 ## Rules for every change
 
-1. **Spec first.** Work comes from a spec in `specs/`. The current one is
-   `specs/SPEC-0001-executor-contract.md` (stage 4). Do its tasks in order.
+1. **Spec first.** Work comes from a spec in `specs/`, one per stage. Run
+   `python -m harness spec` to list them. Cite the spec in every commit.
 2. **Deterministic things are real.** No mocked gate, ledger, tier or check.
    A model call may be recorded or stubbed only if it is labelled as such
    wherever it appears.
