@@ -1,0 +1,53 @@
+# The pipeline is the control. A change to this file is Tier C.
+name: harness
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: harness
+          POSTGRES_PASSWORD: harness
+          POSTGRES_DB: harness
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U harness"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      LEDGER_PG_DSN: postgresql://harness:harness@localhost:5432/harness
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml cryptography pytest hypothesis "psycopg[binary]"
+
+      - name: Every link resolves and every skill verifies
+        run: python -m harness validate
+
+      - name: Tier this change
+        if: github.event_name == 'pull_request'
+        run: >
+          python -m harness tier
+          --diff "origin/${{ github.base_ref }}" "${{ github.sha }}"
+
+      - name: Tests (ledger contract on SQLite and Postgres)
+        run: python -m pytest -q
+
+      - name: Attack pack
+        run: python -m harness attacks
+
+      - name: One pipeline, three tiers
+        run: python -m harness demo
