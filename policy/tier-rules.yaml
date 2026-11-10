@@ -1,0 +1,31 @@
+# Tier rulebook v0. Deterministic. Read by harness/tiering/rulebook.py.
+#
+#   A  routine
+#   B  standard
+#   C  consumer-impacting: obligation IDs, compliance tests, two-person release
+#
+# There is no field here, or anywhere, where the author of a change states its
+# tier. A change to this file is itself Tier C (see path-map.yaml).
+
+version: 0
+
+defaults:
+  unmapped: C      # a path nothing maps is Tier C until mapped
+  mixed: highest   # a change takes the highest tier it touches
+
+# A path-map rule may name the data classes its files handle. Each class has a
+# floor that can raise the rule's tier and never lower it.
+data_class_floor:
+  none: A
+  internal: B
+  consumer-personal: C
+  credit-decision: C
+
+# A change that cites an obligation ID is at least this tier.
+obligation_floor: C
+
+# Paths under these roots are skills. Their tier comes from the skill map: the
+# runtime nodes that load the skill. A skill path with no skill-map entry, or
+# an entry with no consuming nodes, FAILS the tier check.
+skill_roots:
+  - knowledge/skills/

@@ -1,0 +1,15 @@
+# Skill map: which skill governs which code, and which runtime nodes load it.
+# Works like CODEOWNERS, keyed on paths. It is a declared input of the tier
+# rulebook: a skill change takes its tier from its consuming nodes.
+
+version: 0
+
+skills:
+  - id: SKL-income-calculation
+    path: "knowledge/skills/income-calculation/**"
+    owner: income-policy-sme
+    governs:
+      - "services/decision_income/**"
+    consuming_nodes:
+      - node: NODE-income-verify
+        regulated: true

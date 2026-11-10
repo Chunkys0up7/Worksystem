@@ -1,0 +1,89 @@
+# Path map: what each part of the repository is, and so what tier a change to
+# it takes. Every matching rule applies and the highest tier wins, so order does
+# not matter and a broad rule cannot lower a narrow one.
+#
+# Anything not matched here is Tier C until someone maps it.
+
+version: 0
+
+paths:
+  - glob: "docs/**"
+    tier: A
+    data_classes: [none]
+    reason: documentation, no runtime effect
+
+  - glob: "README.md"
+    tier: A
+    data_classes: [none]
+    reason: documentation, no runtime effect
+
+  - glob: "Makefile"
+    tier: B
+    reason: developer entry points
+
+  - glob: "pyproject.toml"
+    tier: B
+    reason: build and dependency definition
+
+  - glob: "tools/**"
+    tier: B
+    reason: developer tooling
+
+  - glob: "tests/**"
+    tier: B
+    reason: tests are part of the control; weakening one is not routine
+
+  - glob: "attacks/**"
+    tier: B
+    reason: the attack pack is part of the control
+
+  - glob: "harness/**"
+    tier: B
+    data_classes: [internal]
+    reason: delivery harness code
+
+  - glob: "harness/ledger/**"
+    tier: C
+    reason: the evidence layer; a defect here undermines every other control
+
+  - glob: "harness/tiering/**"
+    tier: C
+    reason: the rulebook that sets tiers cannot be changed as routine work
+
+  - glob: "harness/gates.py"
+    tier: C
+    reason: the gate that blocks merges
+
+  - glob: "policy/**"
+    tier: C
+    reason: governance plane; tier rules, identities, records schedule
+
+  - glob: ".github/workflows/**"
+    tier: C
+    reason: the pipeline is the control; changing it changes every gate
+
+  - glob: "demo-keys/**"
+    tier: C
+    reason: signing keys
+
+  - glob: "knowledge/blueprint/**"
+    tier: B
+    reason: service blueprint
+
+  - glob: "knowledge/cards/**"
+    tier: C
+    data_classes: [credit-decision]
+    reason: cards state rules that drive a credit decision
+
+  - glob: "knowledge/decisions/**"
+    tier: C
+    reason: the decision and obligation register
+
+  - glob: "knowledge/skills/**"
+    tier: B
+    reason: skills; the skill map can raise this by consuming node
+
+  - glob: "services/decision_income/**"
+    tier: C
+    data_classes: [credit-decision, consumer-personal]
+    reason: deterministic decision service for a regulated moment
